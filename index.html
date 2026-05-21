@@ -175,10 +175,16 @@
 
                 <!-- 模式A：直接更新與結案 -->
                 <div id="modal-mode-direct">
-                    <label class="block text-sm font-medium text-slate-700 mb-1">當前狀態變更為</label>
+                    <!-- 📋 隔離出的歷史紀錄唯讀區 -->
+                    <div id="modal-past-replies" class="hidden-view"></div>
+
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">當前狀態變更為</label>
                     <select id="modal-status" class="w-full p-2.5 border border-slate-300 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-primary bg-white"><option value="待處理">待處理</option><option value="處理中">處理中</option><option value="已完成">已完成 (系統將自動寄信)</option></select>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">工程師維護紀錄/回覆</label>
-                    <textarea id="modal-reply" rows="5" class="w-full p-2.5 border border-slate-300 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-primary whitespace-pre-wrap" placeholder="填寫最新維護處理紀錄..."></textarea>
+                    
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">新增本次處理進度/回覆</label>
+                    <textarea id="modal-reply" rows="4" class="w-full p-2.5 border border-slate-300 rounded-lg mb-1 outline-none focus:ring-2 focus:ring-primary whitespace-pre-wrap" placeholder="在此輸入今天最新的進度（例如：等廠商報價 約5天），系統會自動在最前頭蓋上今日時間戳記並在背景換行追加，絕不破壞過往紀錄！"></textarea>
+                    <p class="text-[11px] text-slate-400 mb-6 leading-relaxed">💡 送出後，本次填寫的文字會以「增量追加（一筆一行）」形式，完美黏貼於過往處理紀錄下方。</p>
+                    
                     <div class="flex justify-end gap-3">
                         <button onclick="closeModal()" class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
                         <button onclick="submitUpdate()" id="modal-submit-btn" class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition flex items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> 儲存變更</button>
@@ -447,7 +453,7 @@
                 const textOnly = log.replace(/\[.*?\]/, '').trim();
                 
                 let icon = 'circle'; let iconColor = 'text-slate-400 bg-slate-100';
-                if (textOnly.includes('建立') || textOnly.includes('提報')) { icon = 'wrench'; iconColor = 'text-blue-600 bg-blue-100'; }
+                if (textOnly.includes('建立') || textOnly.includes('提報') || textOnly.includes('提交')) { icon = 'wrench'; iconColor = 'text-blue-600 bg-blue-100'; }
                 else if (textOnly.includes('核准') || textOnly.includes('核定') || textOnly.includes('通過')) { icon = 'check-circle-2'; iconColor = 'text-green-600 bg-green-100'; }
                 else if (textOnly.includes('退回') || textOnly.includes('駁回')) { icon = 'x-circle'; iconColor = 'text-red-600 bg-red-100'; }
 
@@ -461,6 +467,48 @@
                 </div>`;
             });
             html += `</div>`;
+            return html;
+        }
+
+        // 📍 【核心優化】：將儲存格中的 reply (多行 timestamp 對話) 解析為超精美的對話盒日誌看板，直接呈現在卡片上！
+        function renderPastReplies(replyStr, showFiles = false) {
+            if (!replyStr) return '';
+            const logs = replyStr.split('\n');
+            let html = `
+            <div class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                <div class="font-bold text-slate-700 flex items-center gap-1 mb-2">
+                    <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-500"></i> 處置與歷史回覆歷程：
+                </div>
+                <div class="space-y-2 max-h-44 overflow-y-auto pr-1 no-scrollbar">`;
+            
+            logs.forEach(log => {
+                let text = log.trim();
+                if (!text) return;
+                
+                // 判斷是否為系統自動同步
+                const isSystem = text.includes('【系統自動同步');
+                text = text.replace(/^➔?\s*/, ''); // 去除前導箭頭
+                
+                // 剖析 [時間] 與 內容
+                const timeMatch = text.match(/^\[(.*?)\]\s*(.*)$/);
+                let time = '';
+                let content = text;
+                if (timeMatch) {
+                    time = timeMatch[1];
+                    content = timeMatch[2];
+                }
+                
+                const borderClass = isSystem ? 'border-blue-100 bg-blue-50/40 text-blue-900' : 'border-slate-150 bg-white text-slate-700';
+                const timeColor = isSystem ? 'text-blue-500' : 'text-slate-400';
+                
+                html += `
+                <div class="p-2.5 rounded-lg border ${borderClass} leading-relaxed shadow-xs">
+                    ${time ? `<div class="text-[9px] font-bold ${timeColor} font-mono mb-1 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${time}</div>` : ''}
+                    <div class="whitespace-pre-wrap font-medium">${content}</div>
+                </div>`;
+            });
+            
+            html += `</div></div>`;
             return html;
         }
 
@@ -592,6 +640,7 @@
             loadHistory();
         }
 
+        // 員工看歷史紀錄：隱藏報價單連結
         function renderQuotesTable(quotesJson, selectedObjStr = '', showFiles = false) {
             if (!quotesJson || quotesJson === '[]') return '';
             try {
@@ -645,6 +694,9 @@
                 }
 
                 const quoteTableHTML = renderQuotesTable(record.quotesJson, record.finalDecision, false);
+                
+                // 📍 解析並獲得該同仁卡片上的歷程看板
+                const pastRepliesHTML = renderPastReplies(record.reply, false);
 
                 const cardHTML = `
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
@@ -658,14 +710,15 @@
                     ${atts.video ? `<a href="${atts.video}" target="_blank" class="inline-flex items-center gap-1 mt-3 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-100"><i data-lucide="play-circle" class="w-4 h-4"></i> 觀看影片附件</a>` : ''}
                     
                     ${quoteTableHTML}
+                    
+                    <!-- 📍 歷程直接呈現在同仁卡片上 -->
+                    ${pastRepliesHTML}
 
                     <!-- 垂直可視化簽核歷程時間軸 -->
                     <div class="mt-4 pt-4 border-t border-slate-100">
                         <h5 class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><i data-lucide="history" class="w-3.5 h-3.5"></i> 案件動態簽核歷程日誌：</h5>
                         ${renderTimeline(record.timeline)}
                     </div>
-                    
-                    ${record.reply ? `<div class="text-sm bg-blue-50 border-l-4 border-blue-500 p-3 text-blue-800 mt-4 rounded-r-lg whitespace-pre-wrap"><div class="font-bold mb-1">工程師最新回覆：</div>${record.reply}</div>` : ''}
                     
                     <div class="text-xs text-slate-400 mt-4 text-right pt-2 border-t border-slate-50"><i data-lucide="clock" class="inline w-3 h-3"></i> 建立於 ${record.createdAt}</div>
                 </div>`;
@@ -714,10 +767,12 @@
                 }
 
                 const quoteSumHTML = renderQuotesTable(record.quotesJson, record.finalDecision, true);
+                
+                // 📍 解析並獲得工程師卡片上的「歷史處置看板」（帶報價單附件連結）
+                const pastRepliesHTML = renderPastReplies(record.reply, true);
 
-                // 📍 【升級】：公文唯讀鎖定（Workflow Lock）
-                // 只有「待處理」或「處理中」能由工程師編輯，其餘鎖定
-                const canEdit = record.status === '待處理' || record.status === '處理中';
+                // 公文唯讀鎖定控制
+                const canEdit = record.status === '待處理' || record.status === '處理中' || record.status === '待主管簽核';
                 const actionBtnHtml = canEdit
                   ? `<button onclick="openModal('${btnData}')" class="bg-blue-50 border border-blue-200 p-2 rounded-lg text-primary hover:bg-blue-100 flex-shrink-0 transition" title="處置/提報方案"><i data-lucide="edit" class="w-4 h-4"></i></button>`
                   : `<span class="text-xs text-slate-400 bg-slate-50 border border-slate-200 p-2 py-1.5 rounded-lg flex items-center gap-1 font-bold"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 公文鎖定</span>`;
@@ -736,6 +791,9 @@
                     ${imgsHTML}
                     
                     ${quoteSumHTML}
+                    
+                    <!-- 📍 歷程直接呈現在工程團隊後台，一眼看懂進度優先級！ -->
+                    ${pastRepliesHTML}
 
                     <div class="flex gap-2 mt-auto pt-3">
                         ${atts.video ? `<a href="${atts.video}" target="_blank" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded flex items-center gap-1"><i data-lucide="film" class="w-3 h-3"></i>觀看影片</a>` : ''}
@@ -961,12 +1019,27 @@
             }
         }
 
+        // 開啟更新 Modal：隔離歷史紀錄與新輸入框
         function openModal(dataStr) {
             const data = JSON.parse(decodeURIComponent(dataStr));
             document.getElementById('modal-caseid').value = data.caseId;
             document.getElementById('modal-status').value = data.status;
-            document.getElementById('modal-reply').value = data.reply || '';
             
+            // 1. 新增輸入框回歸純淨空白
+            document.getElementById('modal-reply').value = ''; 
+            
+            // 2. 歷史處理紀錄以高質感唯讀看板渲染
+            const pastRepliesContainer = document.getElementById('modal-past-replies');
+            if (data.reply) {
+                // 📍 直接調用歷程看板渲染，使 Modal 歷史與卡片面板風格高度一致！
+                pastRepliesContainer.innerHTML = renderPastReplies(data.reply, true);
+                pastRepliesContainer.classList.remove('hidden-view');
+            } else {
+                pastRepliesContainer.innerHTML = '';
+                pastRepliesContainer.classList.add('hidden-view');
+            }
+
+            // 清空詢比價暫存
             quoteFilesMap = {};
             const container = document.getElementById('quotes-list-container');
             container.innerHTML = '';
@@ -974,6 +1047,7 @@
 
             switchModalMode('direct');
             document.getElementById('reply-modal').classList.remove('hidden-view');
+            lucide.createIcons();
         }
 
         function closeModal() { document.getElementById('reply-modal').classList.add('hidden-view'); }
@@ -1020,7 +1094,7 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('方案提交成功！');
+                    showToast('處置方案提報成功！');
                     cacheData.admin = null; 
                     closeModal(); loadAdminData(true);
                 } else { showCustomAlert('提報失敗：' + res.message); }
@@ -1102,8 +1176,16 @@
         }
 
         async function submitUpdate() {
-            const btn = document.getElementById('modal-submit-btn'); const caseId = document.getElementById('modal-caseid').value;
-            const newStatus = document.getElementById('modal-status').value; const newReply = document.getElementById('modal-reply').value;
+            const btn = document.getElementById('modal-submit-btn'); 
+            const caseId = document.getElementById('modal-caseid').value;
+            const newStatus = document.getElementById('modal-status').value; 
+            const newReply = document.getElementById('modal-reply').value.trim(); 
+
+            if(!newReply) {
+                showCustomAlert('請填寫本次新增的處理進度回覆說明！');
+                return;
+            }
+
             btn.innerHTML = `<div class="loader" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div>`; btn.disabled = true;
 
             try {

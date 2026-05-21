@@ -546,7 +546,7 @@
 
                 const result = await callGAS(payload);
                 if (result.status === 'success') { 
-                    showToast('✅ 報修單提交成功！'); 
+                    showToast('報修單提交成功！'); 
                     document.getElementById('repair-form').reset(); 
                     clearAttachments(); 
                     cacheData.history = null; 
@@ -1020,7 +1020,7 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('✅ 比價公文提報成功！');
+                    showToast('比價公文提報成功！');
                     cacheData.admin = null; 
                     closeModal(); loadAdminData(true);
                 } else { showCustomAlert('提報失敗：' + res.message); }
@@ -1093,7 +1093,7 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('✅ 公文簽核送出成功！');
+                    showToast('公文簽核送出成功！');
                     cacheData.approve = null; 
                     closeApproveModal(); loadApproveData(true);
                 } else { showCustomAlert('簽核失敗：' + res.message); }
@@ -1109,7 +1109,7 @@
             try {
                 const res = await callGAS({ action: 'update_repair', caseId: caseId, status: newStatus, reply: newReply });
                 if(res.status === 'success') { 
-                    showToast('✅ 案件狀態已更新'); 
+                    showToast('案件狀態已更新'); 
                     cacheData.admin = null; 
                     closeModal(); 
                     loadAdminData(true); 

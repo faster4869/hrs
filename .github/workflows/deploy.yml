@@ -1,0 +1,55 @@
+# =========================================================
+# 企業雲端報修系統 - GitHub Pages 靜態網頁自動部署工作流
+# 支援最新 Node.js 24 執行環境，完美消除過期警告
+# =========================================================
+
+name: Deploy Repair System to Pages
+
+on:
+  # 當您提交 (push) 程式碼到 main 分支時，自動啟動部署
+  push:
+    branches: ["main"]
+
+  # 允許您在 GitHub 網頁上的 Actions 頁籤手動點擊執行部署
+  workflow_dispatch:
+
+# 設定 GitHub Actions 的底層執行變數，強制使用 Node.js 24 執行，消除舊版警告
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+# 設定 GITHUB_TOKEN 的安全權限，允許將網頁部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 限制同時間只能進行一個部署任務，避免重複部署造成衝突
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 複製專案程式碼到虛擬主機中
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. 初始化 GitHub Pages 設定
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 3. 打包專案中的網頁檔案 (打包根目錄下的 index.html)
+      - name: Upload Web Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      # 4. 正式部署至 GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

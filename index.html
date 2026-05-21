@@ -253,7 +253,6 @@
             approveTime: 0
         };
 
-        // 📍 【新增防呆】：判斷使用者是否擁有多重角色中的特定角色
         const hasRole = (roleName) => {
             if (!userRole) return false;
             return userRole.toLowerCase().split(',').map(r => r.trim()).includes(roleName.toLowerCase());
@@ -290,7 +289,6 @@
                         let badgeTexts = [];
                         let badgeClass = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded"; // 預設工程師
                         
-                        // 📍 支援多重角色合併顯示
                         if (hasRole('admin')) {
                             badgeTexts.push('系統管理員');
                             badgeClass = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
@@ -311,7 +309,6 @@
                         badge.className = badgeClass;
                         badge.classList.remove('hidden-view');
                         
-                        // 📍 智慧分流解鎖控制頁籤
                         if (hasRole('manager') || hasRole('secretary_general') || hasRole('admin')) {
                             document.getElementById('tab-btn-approve').classList.remove('hidden-view');
                         } else {
@@ -639,7 +636,7 @@
             if (!records || records.length === 0) { container.innerHTML = `<div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center"><i data-lucide="inbox" class="w-16 h-16 text-slate-200 mx-auto mb-4"></i><p class="text-slate-500 font-medium">您目前沒有任何報修紀錄！</p></div>`; lucide.createIcons(); return; }
 
             records.reverse().forEach(record => {
-                let statusColor = record.status === '已完成' ? 'bg-green-100 text-green-800 border-green-200' : (record.status.includes('簽核') ? 'bg-purple-100 text-purple-800 border-purple-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'));
+                let statusColor = record.status === '已完成' ? 'bg-green-100 text-green-800 border-green-200' : (record.status.includes('已退回') ? 'bg-red-100 text-red-800 border-red-200' : (record.status.includes('簽核') ? 'bg-purple-100 text-purple-800 border-purple-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200')));
                 const atts = parseAttachments(record.imageUrl);
                 
                 let imgsHTML = '';
@@ -647,7 +644,6 @@
                     imgsHTML = `<div class="flex gap-2 mt-3 flex-wrap">` + atts.images.map(img => `<a href="${img}" target="_blank"><img src="${getThumbnailUrl(img)}" class="w-16 h-16 object-cover rounded border border-slate-200 hover:opacity-80"></a>`).join('') + `</div>`;
                 }
 
-                // 員工看歷史紀錄：隱藏報價單連結
                 const quoteTableHTML = renderQuotesTable(record.quotesJson, record.finalDecision, false);
 
                 const cardHTML = `
@@ -704,11 +700,11 @@
             
             const dataToRender = allAdminRepairs.length > 0 ? allAdminRepairs : (cacheData.admin ? [...cacheData.admin].reverse() : []);
             
-            let filtered = filter === 'ALL' ? dataToRender : (filter === '待處理' ? dataToRender.filter(r => r.status !== '已完成' && r.status !== '已退回') : dataToRender.filter(r => r.status === 'bg-green-100 text-green-700 border-green-200'));
+            let filtered = filter === 'ALL' ? dataToRender : (filter === '待處理' ? dataToRender.filter(r => r.status !== '已完成' && r.status !== '已退回') : dataToRender.filter(r => r.status === '已完成'));
             if(filtered.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 border border-dashed rounded-xl">目前無符合案件。</div>`; return; }
 
             filtered.forEach(record => {
-                let sColor = record.status === '已完成' ? 'bg-green-100 text-green-700 border-green-200' : (record.status.includes('簽核') ? 'bg-purple-100 text-purple-700 border-purple-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'));
+                let sColor = record.status === '已完成' ? 'bg-green-100 text-green-700 border-green-200' : (record.status.includes('已退回') ? 'bg-red-100 text-red-700 border-red-200' : (record.status.includes('簽核') ? 'bg-purple-100 text-purple-700 border-purple-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200')));
                 const btnData = encodeURIComponent(JSON.stringify(record));
                 const atts = parseAttachments(record.imageUrl);
 
@@ -719,6 +715,13 @@
 
                 const quoteSumHTML = renderQuotesTable(record.quotesJson, record.finalDecision, true);
 
+                // 📍 【升級】：公文唯讀鎖定（Workflow Lock）
+                // 只有「待處理」或「處理中」能由工程師編輯，其餘鎖定
+                const canEdit = record.status === '待處理' || record.status === '處理中';
+                const actionBtnHtml = canEdit
+                  ? `<button onclick="openModal('${btnData}')" class="bg-blue-50 border border-blue-200 p-2 rounded-lg text-primary hover:bg-blue-100 flex-shrink-0 transition" title="處置/提報方案"><i data-lucide="edit" class="w-4 h-4"></i></button>`
+                  : `<span class="text-xs text-slate-400 bg-slate-50 border border-slate-200 p-2 py-1.5 rounded-lg flex items-center gap-1 font-bold"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 公文鎖定</span>`;
+
                 container.innerHTML += `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition flex flex-col h-full">
                     <div class="flex justify-between items-start mb-2">
@@ -726,7 +729,7 @@
                             <span class="text-xs px-2 py-0.5 rounded border font-bold ${sColor} mb-1.5 inline-block">${record.status}</span>
                             <h4 class="font-bold text-slate-800 text-sm sm:text-base leading-tight">${record.equipment}</h4>
                         </div>
-                        <button onclick="openModal('${btnData}')" class="bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-700 flex-shrink-0"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        ${actionBtnHtml}
                     </div>
                     <div class="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2 space-y-1"><div>案號: <span class="font-mono text-slate-400">${record.caseId}</span></div><div class="truncate">提報人: ${record.reporter}</div><div>時間: ${record.createdAt}</div></div>
                     <div class="text-sm text-slate-700 mb-2 bg-slate-50 p-2 rounded flex-grow whitespace-pre-wrap">${record.description}</div>
@@ -757,7 +760,6 @@
                     const list = res.data.reverse();
                     let pendingList = [];
                     
-                    // 📍 【智慧前端多角色併網分流】
                     if (hasRole('admin')) {
                         pendingList = list.filter(r => (r.supervisorStatus === '待審核') || (r.secretaryStatus === '待審核'));
                     } else {
@@ -769,7 +771,6 @@
                         if (hasRole('secretary_general')) {
                             secretaryList = list.filter(r => r.secretaryStatus === '待審核');
                         }
-                        // 合併兩組關卡並排除重複案號，讓擁有多角色的長官在同一面版完美通關！
                         pendingList = [...managerList, ...secretaryList].filter((v, i, a) => a.findIndex(t => t.caseId === v.caseId) === i);
                     }
                     
@@ -809,7 +810,6 @@
                     `;
                 });
 
-                // 動態核決標籤提示
                 let badgeText = "待核決";
                 if (hasRole('admin')) {
                     badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您扮演秘書長)" : "待主管簽核 (您扮演直屬主管)";
@@ -1020,7 +1020,7 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('比價公文提報成功！');
+                    showToast('方案提交成功！');
                     cacheData.admin = null; 
                     closeModal(); loadAdminData(true);
                 } else { showCustomAlert('提報失敗：' + res.message); }
@@ -1093,7 +1093,7 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('公文簽核送出成功！');
+                    showToast('簽核送出成功！');
                     cacheData.approve = null; 
                     closeApproveModal(); loadApproveData(true);
                 } else { showCustomAlert('簽核失敗：' + res.message); }

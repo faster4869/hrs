@@ -237,13 +237,13 @@
     <script>
         lucide.createIcons();
         // ⚠️ 請填入您的最新 GAS Web App URL
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby57Ya8ykeceQP2s7ksd1doCXgbKZNeJuMVO9j12n1LfcWS2KVl59FkoATBLA82Kyvksw/exec';
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzDj_G0f6HYs5FXhvj1t9qDm3lLKyI1q3B_HhGeo1h6042ACe-kLOeIeN3meyatBJC6pg/exec';
         
         let currentUser = null; let isAdminUser = false; let allAdminRepairs = []; let userRole = '';
         let rawSelectedImages = []; let rawSelectedVideo = null; 
         let quoteFilesMap = {}; // 紀錄多廠商報價單上傳檔案的 Base64 暫存區
 
-        // 📍 【新增前端快取模組】：用來儲存已加載的資料，切換 Tab 時直接 0 秒載入
+        // 前端快取模組
         let cacheData = {
             history: null,
             historyTime: 0,
@@ -251,6 +251,12 @@
             adminTime: 0,
             approve: null,
             approveTime: 0
+        };
+
+        // 📍 【新增防呆】：判斷使用者是否擁有多重角色中的特定角色
+        const hasRole = (roleName) => {
+            if (!userRole) return false;
+            return userRole.toLowerCase().split(',').map(r => r.trim()).includes(roleName.toLowerCase());
         };
 
         async function callGAS(payload) {
@@ -281,20 +287,41 @@
                     
                     if (isAdminUser) { 
                         const badge = document.getElementById('admin-badge');
-                        if (userRole.toLowerCase() === 'admin') {
-                            badge.innerText = '系統管理員'; badge.className = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
-                        } else if (userRole.toLowerCase() === 'manager') {
-                            badge.innerText = '直屬主管'; badge.className = "bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded";
-                            document.getElementById('tab-btn-approve').classList.remove('hidden-view');
-                        } else if (userRole.toLowerCase() === 'secretary_general') {
-                            badge.innerText = '秘書長'; badge.className = "bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded";
+                        let badgeTexts = [];
+                        let badgeClass = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded"; // 預設工程師
+                        
+                        // 📍 支援多重角色合併顯示
+                        if (hasRole('admin')) {
+                            badgeTexts.push('系統管理員');
+                            badgeClass = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
+                        }
+                        if (hasRole('manager')) {
+                            badgeTexts.push('直屬主管');
+                            if (badgeTexts.length === 1) badgeClass = "bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded";
+                        }
+                        if (hasRole('secretary_general')) {
+                            badgeTexts.push('秘書長');
+                            if (badgeTexts.length === 1) badgeClass = "bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded";
+                        }
+                        if (hasRole('engineer') && badgeTexts.length === 0) {
+                            badgeTexts.push('工程師');
+                        }
+                        
+                        badge.innerText = badgeTexts.join(' + ');
+                        badge.className = badgeClass;
+                        badge.classList.remove('hidden-view');
+                        
+                        // 📍 智慧分流解鎖控制頁籤
+                        if (hasRole('manager') || hasRole('secretary_general') || hasRole('admin')) {
                             document.getElementById('tab-btn-approve').classList.remove('hidden-view');
                         } else {
-                            badge.innerText = '工程師'; badge.className = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
+                            document.getElementById('tab-btn-approve').classList.add('hidden-view');
                         }
-                        badge.classList.remove('hidden-view');
-                        if (userRole.toLowerCase() !== 'manager' && userRole.toLowerCase() !== 'secretary_general') {
+                        
+                        if (hasRole('engineer') || hasRole('admin')) {
                             document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                        } else {
+                            document.getElementById('tab-btn-admin').classList.add('hidden-view');
                         }
                     }
                     switchTab('submit');
@@ -316,20 +343,39 @@
                 if (checkRes.isAdmin) { 
                     isAdminUser = true; userRole = checkRes.role; 
                     const badge = document.getElementById('admin-badge');
-                    if (userRole.toLowerCase() === 'admin') {
-                        badge.innerText = '系統管理員'; badge.className = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
-                    } else if (userRole.toLowerCase() === 'manager') {
-                        badge.innerText = '直屬主管'; badge.className = "bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded";
-                        document.getElementById('tab-btn-approve').classList.remove('hidden-view');
-                    } else if (userRole.toLowerCase() === 'secretary_general') {
-                        badge.innerText = '秘書長'; badge.className = "bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded";
+                    let badgeTexts = [];
+                    let badgeClass = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
+                    
+                    if (hasRole('admin')) {
+                        badgeTexts.push('系統管理員');
+                        badgeClass = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
+                    }
+                    if (hasRole('manager')) {
+                        badgeTexts.push('直屬主管');
+                        if (badgeTexts.length === 1) badgeClass = "bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded";
+                    }
+                    if (hasRole('secretary_general')) {
+                        badgeTexts.push('秘書長');
+                        if (badgeTexts.length === 1) badgeClass = "bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded";
+                    }
+                    if (hasRole('engineer') && badgeTexts.length === 0) {
+                        badgeTexts.push('工程師');
+                    }
+                    
+                    badge.innerText = badgeTexts.join(' + ');
+                    badge.className = badgeClass;
+                    badge.classList.remove('hidden-view'); 
+                    
+                    if (hasRole('manager') || hasRole('secretary_general') || hasRole('admin')) {
                         document.getElementById('tab-btn-approve').classList.remove('hidden-view');
                     } else {
-                        badge.innerText = '工程師'; badge.className = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
+                        document.getElementById('tab-btn-approve').classList.add('hidden-view');
                     }
-                    badge.classList.remove('hidden-view'); 
-                    if (userRole.toLowerCase() !== 'manager' && userRole.toLowerCase() !== 'secretary_general') {
+                    
+                    if (hasRole('engineer') || hasRole('admin')) {
                         document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                    } else {
+                        document.getElementById('tab-btn-admin').classList.add('hidden-view');
                     }
                     showToast(`歡迎 ${badge.innerText} ${currentUser.name} 進入系統`); 
                 } else { showToast(`歡迎回來，${currentUser.name}`); }
@@ -341,13 +387,11 @@
 
         function handleLogout() {
             currentUser = null; isAdminUser = false; userRole = ''; localStorage.removeItem('repair_sys_session');
-            // 清空快取資料
             cacheData = { history: null, historyTime: 0, admin: null, adminTime: 0, approve: null, approveTime: 0 };
             document.getElementById('user-profile').classList.add('hidden-view'); document.getElementById('admin-badge').classList.add('hidden-view'); document.getElementById('tab-btn-admin').classList.add('hidden-view'); document.getElementById('tab-btn-approve').classList.add('hidden-view'); document.getElementById('view-login').classList.remove('hidden-view'); document.getElementById('view-dashboard').classList.add('hidden-view');
             if (window.google) google.accounts.id.disableAutoSelect(); showToast("您已安全登出系統。");
         }
 
-        // 📍 【快取節流調配大腦】：點擊標籤時，檢查有沒有在 30 秒內載入過。若有，則 0 秒開啟
         function switchTab(tab) {
             const tabs = ['submit', 'history', 'admin', 'approve'];
             tabs.forEach(t => {
@@ -358,26 +402,30 @@
             });
             if (!isAdminUser) { document.getElementById('tab-btn-admin').classList.add('hidden-view'); document.getElementById('tab-btn-approve').classList.add('hidden-view'); }
             else {
-                if (userRole.toLowerCase() !== 'manager' && userRole.toLowerCase() !== 'secretary_general') {
-                    document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                if (hasRole('manager') || hasRole('secretary_general') || hasRole('admin')) {
+                    document.getElementById('tab-btn-approve').classList.remove('hidden-view');
+                } else {
                     document.getElementById('tab-btn-approve').classList.add('hidden-view');
+                }
+                
+                if (hasRole('engineer') || hasRole('admin')) {
+                    document.getElementById('tab-btn-admin').classList.remove('hidden-view');
                 } else {
                     document.getElementById('tab-btn-admin').classList.add('hidden-view');
-                    document.getElementById('tab-btn-approve').classList.remove('hidden-view');
                 }
             }
             
             const now = Date.now();
             if (tab === 'history') {
                 if (cacheData.history && (now - cacheData.historyTime < 30000)) {
-                    renderHistory(cacheData.history); // 直接利用快取渲染，0 秒延遲！
+                    renderHistory(cacheData.history); 
                 } else {
                     loadHistory();
                 }
             } 
             if (tab === 'admin' && isAdminUser) {
                 if (cacheData.admin && (now - cacheData.adminTime < 30000)) {
-                    renderAdminData(); // 直接從快取篩選並秒開！
+                    renderAdminData(); 
                 } else {
                     loadAdminData(false);
                 }
@@ -501,8 +549,6 @@
                     showToast('✅ 報修單提交成功！'); 
                     document.getElementById('repair-form').reset(); 
                     clearAttachments(); 
-                    
-                    // 清除歷史快取以強行更新
                     cacheData.history = null; 
                     setTimeout(() => switchTab('history'), 1000); 
                 } 
@@ -536,7 +582,6 @@
             try {
                 const result = await callGAS({ action: 'get_history' });
                 if (result.status === 'success') {
-                    // 📍 寫入快取記憶體
                     cacheData.history = result.data;
                     cacheData.historyTime = Date.now();
                     renderHistory(result.data);
@@ -545,7 +590,6 @@
             } catch (error) { container.innerHTML = `<div class="text-center py-10 text-red-500">網路連線異常，無法取得紀錄。</div>`; }
         }
 
-        // 強制手動同步刷新
         function forceRefreshHistory() {
             cacheData.history = null;
             loadHistory();
@@ -603,6 +647,7 @@
                     imgsHTML = `<div class="flex gap-2 mt-3 flex-wrap">` + atts.images.map(img => `<a href="${img}" target="_blank"><img src="${getThumbnailUrl(img)}" class="w-16 h-16 object-cover rounded border border-slate-200 hover:opacity-80"></a>`).join('') + `</div>`;
                 }
 
+                // 員工看歷史紀錄：隱藏報價單連結
                 const quoteTableHTML = renderQuotesTable(record.quotesJson, record.finalDecision, false);
 
                 const cardHTML = `
@@ -633,7 +678,6 @@
             lucide.createIcons();
         }
 
-        // 📍 【優化大腦】：載入管理員資料，可選用 forceRefresh 強制重讀或用快取
         async function loadAdminData(forceRefresh = false) {
             const container = document.getElementById('admin-container');
             const now = Date.now();
@@ -646,7 +690,6 @@
             try {
                 const res = await callGAS({ action: 'get_all_repairs' });
                 if(res.status === 'success') {
-                    // 寫入快取
                     cacheData.admin = res.data;
                     cacheData.adminTime = Date.now();
                     allAdminRepairs = res.data.reverse(); 
@@ -659,10 +702,9 @@
             const container = document.getElementById('admin-container'); const filter = document.getElementById('admin-filter').value;
             container.innerHTML = '';
             
-            // 使用快取資料進行快速篩選與排列
             const dataToRender = allAdminRepairs.length > 0 ? allAdminRepairs : (cacheData.admin ? [...cacheData.admin].reverse() : []);
             
-            let filtered = filter === 'ALL' ? dataToRender : (filter === '待處理' ? dataToRender.filter(r => r.status !== '已完成' && r.status !== '已退回') : dataToRender.filter(r => r.status === '已完成'));
+            let filtered = filter === 'ALL' ? dataToRender : (filter === '待處理' ? dataToRender.filter(r => r.status !== '已完成' && r.status !== '已退回') : dataToRender.filter(r => r.status === 'bg-green-100 text-green-700 border-green-200'));
             if(filtered.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 border border-dashed rounded-xl">目前無符合案件。</div>`; return; }
 
             filtered.forEach(record => {
@@ -700,7 +742,6 @@
             lucide.createIcons();
         }
 
-        // 📍 主管專區優化
         async function loadApproveData(forceRefresh = false) {
             const container = document.getElementById('approve-container');
             const now = Date.now();
@@ -716,13 +757,22 @@
                     const list = res.data.reverse();
                     let pendingList = [];
                     
-                    if (userRole.toLowerCase() === 'manager') {
-                        pendingList = list.filter(r => r.supervisorStatus === '待審核' && r.supervisorEmail.trim().toLowerCase() === currentUser.email.trim().toLowerCase());
-                    } else if (userRole.toLowerCase() === 'secretary_general') {
-                        pendingList = list.filter(r => r.secretaryStatus === '待審核');
+                    // 📍 【智慧前端多角色併網分流】
+                    if (hasRole('admin')) {
+                        pendingList = list.filter(r => (r.supervisorStatus === '待審核') || (r.secretaryStatus === '待審核'));
+                    } else {
+                        let managerList = [];
+                        let secretaryList = [];
+                        if (hasRole('manager')) {
+                            managerList = list.filter(r => r.supervisorStatus === '待審核' && r.supervisorEmail.trim().toLowerCase() === currentUser.email.trim().toLowerCase());
+                        }
+                        if (hasRole('secretary_general')) {
+                            secretaryList = list.filter(r => r.secretaryStatus === '待審核');
+                        }
+                        // 合併兩組關卡並排除重複案號，讓擁有多角色的長官在同一面版完美通關！
+                        pendingList = [...managerList, ...secretaryList].filter((v, i, a) => a.findIndex(t => t.caseId === v.caseId) === i);
                     }
                     
-                    // 寫入快取
                     cacheData.approve = pendingList;
                     cacheData.approveTime = Date.now();
                     renderApproveData(pendingList);
@@ -759,10 +809,18 @@
                     `;
                 });
 
+                // 動態核決標籤提示
+                let badgeText = "待核決";
+                if (hasRole('admin')) {
+                    badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您扮演秘書長)" : "待主管簽核 (您扮演直屬主管)";
+                } else if (hasRole('manager') && hasRole('secretary_general')) {
+                    badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您為秘書長關卡)" : "待主管簽核 (您為一階主管關卡)";
+                }
+
                 container.innerHTML += `
                 <div class="bg-white p-5 rounded-2xl border border-purple-200 shadow-sm hover:shadow-md transition">
                     <div class="flex justify-between items-start mb-3">
-                        <span class="text-xs bg-purple-100 text-purple-700 font-bold px-2.5 py-1 rounded">待核決</span>
+                        <span class="text-xs bg-purple-100 text-purple-700 font-bold px-2.5 py-1 rounded">${badgeText}</span>
                         <button onclick="openApproveModal('${btnData}')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 transition"><i data-lucide="stamp" class="w-4 h-4"></i> 進行線上核決</button>
                     </div>
                     <h4 class="font-bold text-slate-800 text-base leading-tight mb-2">${record.equipment}</h4>
@@ -791,11 +849,11 @@
                 <button type="button" onclick="removeQuoteRow('${rowId}')" class="absolute top-2 right-2 text-red-500 hover:text-red-700" title="刪除本方案"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
                 <h4 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> 廠商方案 ${rowCount + 1}</h4>
                 <div class="grid grid-cols-1 gap-2 mb-2">
-                    <input type="text" class="quote-vendor p-2 border border-slate-300 rounded text-sm outline-none" placeholder="廠商名稱 (例如：巨匠科技)" required>
-                    <input type="text" class="quote-desc p-2 border border-slate-300 rounded text-sm outline-none" placeholder="處置描述與保固 (例如：更換投影機，保固半年)" required>
+                    <input type="text" class="quote-vendor p-2 border border-slate-300 rounded text-sm outline-none" placeholder="廠商名稱" required>
+                    <input type="text" class="quote-desc p-2 border border-slate-300 rounded text-sm outline-none" placeholder="處置描述與保固" required>
                     <div class="relative">
                         <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
-                        <input type="number" class="quote-price w-full p-2 pl-6 border border-slate-300 rounded text-sm outline-none" placeholder="金額 (例如：22000)" required>
+                        <input type="number" class="quote-price w-full p-2 pl-6 border border-slate-300 rounded text-sm outline-none" placeholder="金額" required>
                     </div>
                     
                     <div class="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
@@ -962,8 +1020,8 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('✅ 動態多廠商預算公文呈報主管成功！');
-                    cacheData.admin = null; // 強制下次重撈
+                    showToast('✅ 比價公文提報成功！');
+                    cacheData.admin = null; 
                     closeModal(); loadAdminData(true);
                 } else { showCustomAlert('提報失敗：' + res.message); }
             } catch(e) { showCustomAlert('連線異常，提報失敗。'); }
@@ -1035,8 +1093,8 @@
                 });
                 
                 if (res.status === 'success') {
-                    showToast('✅ 線上詢比價公文簽核核定成功！');
-                    cacheData.approve = null; // 清除簽核快取
+                    showToast('✅ 公文簽核送出成功！');
+                    cacheData.approve = null; 
                     closeApproveModal(); loadApproveData(true);
                 } else { showCustomAlert('簽核失敗：' + res.message); }
             } catch(e) { showCustomAlert('核定失敗，請重試。'); }
@@ -1052,7 +1110,7 @@
                 const res = await callGAS({ action: 'update_repair', caseId: caseId, status: newStatus, reply: newReply });
                 if(res.status === 'success') { 
                     showToast('✅ 案件狀態已更新'); 
-                    cacheData.admin = null; // 清除快取以在更新後重新加載
+                    cacheData.admin = null; 
                     closeModal(); 
                     loadAdminData(true); 
                 } else showCustomAlert('更新失敗: ' + res.message);

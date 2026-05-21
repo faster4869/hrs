@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企業雲端報修系統</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Identity Services (SSO) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- 引入 Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#2563eb', secondary: '#475569' }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hidden-view { display: none !important; }
+        .loader {
+            border: 3px solid #f3f3f3; border-top: 3px solid #2563eb;
+            border-radius: 50%; width: 20px; height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* 隱藏捲軸但保持可捲動 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans pb-20">
+
+    <!-- 頂部導覽列 -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2 text-primary font-bold text-xl">
+                <i data-lucide="wrench"></i>
+                <span class="hidden sm:inline">企業雲端報修系統</span>
+                <span class="sm:hidden">報修系統</span>
+            </div>
+            <!-- 右側使用者資訊 (登入後顯示) -->
+            <div id="user-profile" class="hidden-view flex items-center gap-3">
+                <span id="admin-badge" class="hidden-view bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">工程師</span>
+                <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200 object-cover">
+                <span id="user-name" class="text-sm font-medium hidden sm:inline"></span>
+                <button onclick="handleLogout()" class="text-sm text-slate-500 hover:text-red-500 transition font-bold">登出</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto p-4 mt-2">
+        
+        <!-- 視圖 1：Google 登入畫面 -->
+        <div id="view-login" class="flex flex-col items-center justify-center py-16">
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 text-center max-w-md w-full">
+                <div class="w-16 h-16 bg-blue-100 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">系統登入</h2>
+                <p class="text-slate-500 mb-8 text-sm">請使用 Google 帳號登入，系統將自動識別您的身分權限。</p>
+                
+                <!-- ⚠️ 請替換為您的 Google Client ID -->
+                <div id="g_id_onload" 
+                     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com" 
+                     data-context="signin" 
+                     data-callback="handleCredentialResponse" 
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+            </div>
+        </div>
+
+        <!-- 視圖 2：主控台 -->
+        <div id="view-dashboard" class="hidden-view">
+            
+            <!-- 頁籤切換選單 -->
+            <div class="flex gap-2 mb-6 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
+                <button onclick="switchTab('submit')" id="tab-btn-submit" class="px-4 py-2 rounded-lg font-medium bg-primary text-white flex items-center gap-2 whitespace-nowrap transition">
+                    <i data-lucide="file-plus" class="w-4 h-4"></i> 新增報修
+                </button>
+                <button onclick="switchTab('history')" id="tab-btn-history" class="px-4 py-2 rounded-lg font-medium text-slate-500 hover:bg-slate-100 flex items-center gap-2 whitespace-nowrap transition">
+                    <i data-lucide="list" class="w-4 h-4"></i> 我的紀錄
+                </button>
+                <!-- 工程師專屬頁籤 (權限符合才會顯示) -->
+                <button onclick="switchTab('admin')" id="tab-btn-admin" class="hidden-view px-4 py-2 rounded-lg font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-2 whitespace-nowrap ml-auto transition">
+                    <i data-lucide="settings-2" class="w-4 h-4"></i> 工程師管理
+                </button>
+            </div>
+
+            <!-- 頁籤內容 1：新增報修單 -->
+            <div id="tab-content-submit" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-bold mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><i data-lucide="pen-tool" class="w-5 h-5 text-primary"></i> 填寫報修表單</h3>
+                <form id="repair-form" onsubmit="submitForm(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">設備名稱/編號 <span class="text-red-500">*</span></label>
+                            <input type="text" id="equipment" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="例如：會議室A 投影機">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">故障類別 <span class="text-red-500">*</span></label>
+                            <select id="category" required class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none bg-white">
+                                <option value="" disabled selected>請選擇類別</option>
+                                <option value="硬體設備">硬體設備</option>
+                                <option value="網路異常">網路異常</option>
+                                <option value="軟體系統">軟體系統</option>
+                                <option value="水電空調">水電空調</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">詳細狀況描述 <span class="text-red-500">*</span></label>
+                        <textarea id="description" required rows="3" class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder="請詳細描述您遇到的問題..."></textarea>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">現場照片 (支援拍照上傳)</label>
+                        <label for="image-upload" class="flex flex-col items-center justify-center w-full h-40 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition relative overflow-hidden">
+                            <div id="upload-placeholder" class="text-center pt-5 pb-6">
+                                <i data-lucide="camera" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+                                <p class="text-sm text-slate-500">點擊上傳圖片或開啟相機</p>
+                                <p class="text-xs text-slate-400 mt-1">(限制 5MB 內)</p>
+                            </div>
+                            <img id="image-preview" class="hidden-view absolute inset-0 w-full h-full object-contain bg-slate-900">
+                            <input id="image-upload" type="file" accept="image/*" class="hidden" onchange="previewImage(event)" />
+                        </label>
+                        <button type="button" id="clear-img-btn" class="hidden-view text-sm text-red-500 mt-2 font-medium hover:underline flex items-center gap-1" onclick="clearImage()"><i data-lucide="trash-2" class="w-4 h-4"></i> 清除圖片</button>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="send" class="w-5 h-5"></i> 確認送出報修單
+                    </button>
+                </form>
+            </div>
+
+            <!-- 頁籤內容 2：用戶歷史紀錄 -->
+            <div id="tab-content-history" class="hidden-view">
+                <div id="history-container" class="grid grid-cols-1 gap-4">
+                    <!-- 載入中狀態由 JS 動態渲染 -->
+                </div>
+            </div>
+
+            <!-- 頁籤內容 3：工程師管理後台 -->
+            <div id="tab-content-admin" class="hidden-view">
+                <div class="flex justify-between items-end mb-4 flex-wrap gap-2">
+                    <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="database" class="w-5 h-5"></i> 全站案件管理中心</h3>
+                    <div class="flex gap-2 text-sm">
+                        <select id="admin-filter" onchange="loadAdminData()" class="border border-slate-300 rounded p-1.5 outline-none bg-white">
+                            <option value="ALL">全部狀態案件</option>
+                            <option value="待處理" selected>未完結 (待處理/處理中)</option>
+                            <option value="已完成">已完結案件</option>
+                        </select>
+                        <button onclick="loadAdminData()" class="bg-white border border-slate-300 px-3 py-1.5 rounded hover:bg-slate-50 shadow-sm flex items-center gap-1 transition">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-600"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="admin-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- 管理卡片由 JS 動態渲染 -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 浮動提示元件 (Toast) -->
+    <div id="toast" class="fixed bottom-6 right-1/2 translate-x-1/2 sm:translate-x-0 sm:right-6 bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-y-24 opacity-0 z-50 flex items-center gap-3">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i>
+        <span id="toast-msg" class="font-medium whitespace-nowrap"></span>
+    </div>
+
+    <!-- 工程師：更新案件狀態 Modal -->
+    <div id="reply-modal" class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5 text-primary"></i> 案件狀態更新</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="p-6">
+                <input type="hidden" id="modal-caseid">
+                
+                <label class="block text-sm font-medium text-slate-700 mb-1">當前狀態變更為</label>
+                <select id="modal-status" class="w-full p-2.5 border border-slate-300 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-primary bg-white">
+                    <option value="待處理">待處理</option>
+                    <option value="處理中">處理中</option>
+                    <option value="已完成">已完成 (系統將自動寄信通知立案人)</option>
+                </select>
+                
+                <label class="block text-sm font-medium text-slate-700 mb-1">工程師維護紀錄/回覆</label>
+                <textarea id="modal-reply" rows="4" class="w-full p-2.5 border border-slate-300 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-primary" placeholder="請輸入維修結果、處置方式或給報修人的注意事項..."></textarea>
+                <p class="text-xs text-slate-500 mb-6">此段文字將顯示於用戶查詢頁面，結案時也會附加於通知信件中。</p>
+                
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeModal()" class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
+                    <button onclick="submitUpdate()" id="modal-submit-btn" class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> 儲存變更
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JavaScript 邏輯區 ================= -->
+    <script>
+        // 初始化 Lucide 圖示
+        lucide.createIcons();
+
+        // ⚠️ 請填入您的 GAS 部署網址 (網頁應用程式 URL)
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzT9UkUc3NJleEKNVvT4quFerHy5Y6-cRp4PPm_i4xN4oORdV29T368HoPIZYSH8Bi4hw/exec';
+        
+        let currentUser = null;
+        let selectedImageData = null; // 暫存圖片 { base64, mimeType, filename }
+        let isAdminUser = false;
+        let allAdminRepairs = []; // 暫存後台資料，方便篩選
+
+        /**
+         * 統一呼叫 GAS 後端 API 函數
+         */
+        async function callGAS(payload) {
+            try {
+                // 發送 POST 請求並使用 text/plain 以避開複雜的 CORS Preflight 問題
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        ...payload, 
+                        email: currentUser?.email, 
+                        token: currentUser?.token 
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error("API Error:", error);
+                throw error;
+            }
+        }
+
+        /**
+         * 1. 處理 Google SSO 登入回傳
+         */
+        async function handleCredentialResponse(response) {
+            try {
+                // 手動解碼 JWT 取出基本資料 (前端顯示用，資安驗證由後端處理)
+                const base64Url = response.credential.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                
+                const payload = JSON.parse(jsonPayload);
+                
+                currentUser = { 
+                    email: payload.email, 
+                    name: payload.name, 
+                    picture: payload.picture, 
+                    token: response.credential 
+                };
+
+                // 更新畫面 UI
+                document.getElementById('user-name').innerText = currentUser.name;
+                document.getElementById('user-avatar').src = currentUser.picture;
+                document.getElementById('view-login').classList.add('hidden-view');
+                
+                showToast("登入成功，驗證身分中...");
+                
+                // 呼叫 API 檢查是否為管理員/工程師
+                const checkRes = await callGAS({ action: 'check_admin' });
+                
+                if (checkRes.isAdmin) {
+                    isAdminUser = true;
+                    document.getElementById('admin-badge').classList.remove('hidden-view');
+                    document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                    showToast(`歡迎工程師 ${currentUser.name} 進入系統`);
+                } else {
+                    showToast(`歡迎回來，${currentUser.name}`);
+                }
+                
+                document.getElementById('user-profile').classList.remove('hidden-view');
+                document.getElementById('view-dashboard').classList.remove('hidden-view');
+                
+                // 預設切換至填寫表單頁
+                switchTab('submit');
+
+            } catch (e) {
+                console.error(e);
+                showToast("登入發生異常，請重新整理頁面。");
+                handleLogout();
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null; 
+            isAdminUser = false;
+            document.getElementById('user-profile').classList.add('hidden-view');
+            document.getElementById('admin-badge').classList.add('hidden-view');
+            document.getElementById('tab-btn-admin').classList.add('hidden-view');
+            document.getElementById('view-login').classList.remove('hidden-view');
+            document.getElementById('view-dashboard').classList.add('hidden-view');
+            
+            // 重置 GIS 狀態
+            if (window.google) google.accounts.id.disableAutoSelect();
+            showToast("您已安全登出系統。");
+        }
+
+        /**
+         * 2. 頁籤切換邏輯
+         */
+        function switchTab(tab) {
+            const tabs = ['submit', 'history', 'admin'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (!btn || !content) return;
+                
+                if (t === tab) {
+                    // Active 樣式
+                    if(t === 'admin') {
+                        btn.className = "px-4 py-2 rounded-lg font-bold text-white bg-red-500 flex items-center gap-2 whitespace-nowrap ml-auto transition shadow-sm";
+                    } else {
+                        btn.className = "px-4 py-2 rounded-lg font-medium bg-primary text-white flex items-center gap-2 whitespace-nowrap transition shadow-sm";
+                    }
+                    content.classList.remove('hidden-view');
+                } else {
+                    // Inactive 樣式
+                    if(t === 'admin') {
+                        btn.className = "px-4 py-2 rounded-lg font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-2 whitespace-nowrap ml-auto transition";
+                    } else {
+                        btn.className = "px-4 py-2 rounded-lg font-medium text-slate-500 hover:bg-slate-100 flex items-center gap-2 whitespace-nowrap transition";
+                    }
+                    content.classList.add('hidden-view');
+                }
+            });
+            
+            // 權限控制：如果不是 Admin，隱藏工程師頁籤
+            if (!isAdminUser) {
+                document.getElementById('tab-btn-admin').classList.add('hidden-view');
+            }
+
+            // 觸發對應的資料讀取
+            if (tab === 'history') loadHistory();
+            if (tab === 'admin' && isAdminUser) loadAdminData();
+        }
+
+        /**
+         * 3. 圖片處理 (選取/轉 Base64/預覽/清除)
+         */
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 限制圖片大小 (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('圖片檔案過大，請選擇小於 5MB 的圖片以確保上傳速度。');
+                clearImage();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
+                
+                if (matches && matches.length === 3) {
+                    selectedImageData = {
+                        mimeType: matches[1],
+                        base64: matches[2],
+                        filename: file.name || 'upload.jpg'
+                    };
+                }
+
+                // UI 更新
+                document.getElementById('image-preview').src = dataUrl;
+                document.getElementById('image-preview').classList.remove('hidden-view');
+                document.getElementById('upload-placeholder').classList.add('hidden-view');
+                document.getElementById('clear-img-btn').classList.remove('hidden-view');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            document.getElementById('image-upload').value = '';
+            document.getElementById('image-preview').src = '';
+            document.getElementById('image-preview').classList.add('hidden-view');
+            document.getElementById('upload-placeholder').classList.remove('hidden-view');
+            document.getElementById('clear-img-btn').classList.add('hidden-view');
+            selectedImageData = null;
+        }
+
+        /**
+         * 4. 提交報修單 (新增)
+         */
+        async function submitForm(e) {
+            e.preventDefault();
+            if(!currentUser) return alert("連線遺失，請重新登入！");
+
+            const btn = document.getElementById('submit-btn');
+            const originalBtnText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader" style="width:18px;height:18px;border-width:2px;border-top-color:#fff;"></div> 資料傳送中...`;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            const payload = {
+                action: 'create',
+                equipment: document.getElementById('equipment').value,
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value,
+            };
+
+            if (selectedImageData) {
+                payload.imageBase64 = selectedImageData.base64;
+                payload.imageMimeType = selectedImageData.mimeType;
+                payload.imageFilename = selectedImageData.filename;
+            }
+
+            try {
+                const result = await callGAS(payload);
+                if (result.status === 'success') {
+                    showToast('✅ 報修單提交成功！');
+                    document.getElementById('repair-form').reset();
+                    clearImage();
+                    // 延遲一秒後自動跳轉至歷史紀錄
+                    setTimeout(() => switchTab('history'), 1000);
+                } else {
+                    alert('發生錯誤: ' + result.message);
+                }
+            } catch (error) {
+                alert('網路連線錯誤，請確認網路狀態後再試一次。');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+
+        /**
+         * 5. 一般用戶載入與渲染歷史紀錄
+         */
+        async function loadHistory() {
+            const container = document.getElementById('history-container');
+            container.innerHTML = `
+                <div class="text-center py-16 text-slate-500 flex flex-col items-center">
+                    <div class="loader mb-4"></div><p>正在雲端撈取您的報修紀錄...</p>
+                </div>`;
+
+            if(!currentUser) return;
+
+            try {
+                const result = await callGAS({ action: 'get_history' });
+                if (result.status === 'success') {
+                    renderHistory(result.data);
+                } else {
+                    container.innerHTML = `<div class="text-center py-10 text-red-500">無法取得資料：${result.message}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="text-center py-10 text-red-500">網路連線異常，無法取得紀錄。</div>`;
+            }
+        }
+
+        function renderHistory(records) {
+            const container = document.getElementById('history-container');
+            container.innerHTML = '';
+
+            if (!records || records.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center">
+                        <i data-lucide="inbox" class="w-16 h-16 text-slate-200 mx-auto mb-4"></i>
+                        <p class="text-slate-500 font-medium">太棒了，您目前沒有任何歷史報修紀錄！</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            // 倒序排列，讓最新的案件顯示在上方
+            records.reverse().forEach(record => {
+                let statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200'; // 待處理
+                if (record.status === '處理中') statusColor = 'bg-blue-100 text-blue-800 border-blue-200';
+                if (record.status === '已完成') statusColor = 'bg-green-100 text-green-800 border-green-200';
+
+                const cardHTML = `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-5 hover:shadow-md transition">
+                    ${record.imageUrl 
+                        ? `<a href="${record.imageUrl}" target="_blank" class="block w-full sm:w-28 sm:h-28 flex-shrink-0"><img src="${record.imageUrl}" alt="附圖" class="w-full h-full object-cover rounded-xl border border-slate-200 hover:opacity-90 transition"></a>` 
+                        : `<div class="hidden sm:flex w-28 h-28 bg-slate-50 rounded-xl border border-slate-200 border-dashed items-center justify-center text-slate-300 flex-shrink-0"><i data-lucide="image-off" class="w-8 h-8"></i></div>`
+                    }
+                    <div class="flex-1 w-full">
+                        <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
+                            <h4 class="font-bold text-lg text-slate-800 leading-tight">${record.equipment}</h4>
+                            <span class="text-xs px-2.5 py-1 rounded-full font-bold border ${statusColor} whitespace-nowrap">${record.status}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3 flex items-center gap-2">
+                            <i data-lucide="tag" class="w-3 h-3"></i> ${record.category} 
+                            <span class="text-slate-300">|</span> 案號: ${record.caseId}
+                        </p>
+                        <p class="text-slate-600 text-sm mb-3 bg-slate-50 p-3 rounded-lg border border-slate-100">${record.description}</p>
+                        ${record.reply ? `
+                            <div class="text-sm bg-blue-50 border-l-4 border-blue-500 p-3 text-blue-800 mt-2 rounded-r-lg">
+                                <div class="font-bold flex items-center gap-1 mb-1"><i data-lucide="wrench" class="w-3 h-3"></i> 工程師回覆：</div>
+                                ${record.reply}
+                            </div>
+                        ` : ''}
+                        <div class="text-xs text-slate-400 mt-4 text-right border-t border-slate-50 pt-2 flex items-center justify-end gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> 建立於 ${record.createdAt}
+                        </div>
+                    </div>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', cardHTML);
+            });
+            lucide.createIcons();
+        }
+
+        /**
+         * 6. 工程師後台管理相關邏輯
+         */
+        async function loadAdminData() {
+            const container = document.getElementById('admin-container');
+            container.innerHTML = `
+                <div class="col-span-full text-center py-16 text-slate-500">
+                    <div class="loader mx-auto mb-4"></div>
+                    <p>正在載入全站報修資料庫...</p>
+                </div>`;
+            
+            try {
+                const res = await callGAS({ action: 'get_all_repairs' });
+                if(res.status === 'success') {
+                    allAdminRepairs = res.data.reverse(); // 最新在上
+                    renderAdminData();
+                } else {
+                    container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4 rounded-lg">讀取失敗：${res.message}</div>`;
+                }
+            } catch(e) {
+                container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4 rounded-lg">網路錯誤，請重試。</div>`;
+            }
+        }
+
+        function renderAdminData() {
+            const container = document.getElementById('admin-container');
+            const filter = document.getElementById('admin-filter').value;
+            container.innerHTML = '';
+
+            // 依據下拉選單過濾資料
+            let filtered = allAdminRepairs;
+            if (filter === '待處理') {
+                filtered = allAdminRepairs.filter(r => r.status === '待處理' || r.status === '處理中');
+            } else if (filter === '已完成') {
+                filtered = allAdminRepairs.filter(r => r.status === '已完成');
+            }
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 bg-white rounded-xl border border-slate-100 border-dashed">目前無符合條件的案件。</div>`;
+                return;
+            }
+
+            // 渲染卡片式後台介面 (專為手機優化)
+            filtered.forEach(record => {
+                let sColor = record.status === '已完成' ? 'bg-green-100 text-green-700 border-green-200' : 
+                             (record.status === '處理中' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200');
+                
+                // 將該筆紀錄編碼存入按鈕，方便傳遞給 Modal
+                const btnData = encodeURIComponent(JSON.stringify(record));
+                
+                container.innerHTML += `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1 pr-2">
+                            <span class="text-xs px-2 py-0.5 rounded border font-bold ${sColor} mb-1.5 inline-block">${record.status}</span>
+                            <h4 class="font-bold text-slate-800 text-sm sm:text-base leading-tight">${record.equipment}</h4>
+                        </div>
+                        <button onclick="openModal('${btnData}')" class="bg-slate-50 hover:bg-slate-200 border border-slate-200 p-2 rounded-lg text-slate-700 transition flex-shrink-0" title="更新案件">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2 space-y-1">
+                        <div>案號: <span class="font-mono text-slate-400">${record.caseId}</span></div>
+                        <div class="truncate" title="${record.reporter}">提報人: ${record.reporter}</div>
+                        <div>時間: ${record.createdAt}</div>
+                    </div>
+                    <p class="text-sm text-slate-700 mb-3 bg-slate-50 p-2 rounded line-clamp-3 flex-grow">${record.description}</p>
+                    
+                    ${record.imageUrl ? `
+                        <a href="${record.imageUrl}" target="_blank" class="mt-auto text-xs font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded p-1.5 flex justify-center items-center gap-1 hover:bg-blue-100 transition">
+                            <i data-lucide="image" class="w-3 h-3"></i> 檢視現場附圖
+                        </a>
+                    ` : `
+                        <div class="mt-auto text-xs text-slate-400 bg-slate-50 border border-slate-100 border-dashed rounded p-1.5 text-center">無附圖</div>
+                    `}
+                </div>`;
+            });
+            lucide.createIcons();
+        }
+
+        // --- 工程師 Modal 控制 ---
+        function openModal(dataStr) {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            document.getElementById('modal-caseid').value = data.caseId;
+            document.getElementById('modal-status').value = data.status;
+            document.getElementById('modal-reply').value = data.reply || '';
+            document.getElementById('reply-modal').classList.remove('hidden-view');
+        }
+
+        function closeModal() {
+            document.getElementById('reply-modal').classList.add('hidden-view');
+        }
+
+        async function submitUpdate() {
+            const btn = document.getElementById('modal-submit-btn');
+            const caseId = document.getElementById('modal-caseid').value;
+            const newStatus = document.getElementById('modal-status').value;
+            const newReply = document.getElementById('modal-reply').value;
+
+            btn.innerHTML = `<div class="loader" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div>`;
+            btn.disabled = true;
+
+            try {
+                const res = await callGAS({
+                    action: 'update_repair',
+                    caseId: caseId,
+                    status: newStatus,
+                    reply: newReply
+                });
+                
+                if(res.status === 'success') {
+                    showToast('✅ 案件已成功更新');
+                    closeModal();
+                    loadAdminData(); // 重新讀取後台資料更新畫面
+                } else {
+                    alert('更新失敗: ' + res.message);
+                }
+            } catch(e) {
+                alert('網路異常，更新失敗。');
+            } finally {
+                btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> 儲存變更';
+                lucide.createIcons();
+                btn.disabled = false;
+            }
+        }
+        
+        /**
+         * 7. 全局 Toast 通知元件
+         */
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

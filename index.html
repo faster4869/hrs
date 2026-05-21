@@ -235,6 +235,13 @@
                 
                 document.getElementById('user-profile').classList.remove('hidden-view');
                 document.getElementById('view-dashboard').classList.remove('hidden-view');
+                
+                // 🌟 【新增】將登入狀態與權限存入瀏覽器的 LocalStorage
+                localStorage.setItem('repair_sys_session', JSON.stringify({
+                    currentUser: currentUser,
+                    isAdminUser: isAdminUser
+                }));
+
                 switchTab('submit');
 
             } catch (e) {
@@ -245,7 +252,12 @@
         }
 
         function handleLogout() {
-            currentUser = null; isAdminUser = false;
+            currentUser = null; 
+            isAdminUser = false;
+            
+            // 🌟 【新增】登出時，把瀏覽器裡的記憶清除
+            localStorage.removeItem('repair_sys_session');
+
             document.getElementById('user-profile').classList.add('hidden-view');
             document.getElementById('admin-badge').classList.add('hidden-view');
             document.getElementById('tab-btn-admin').classList.add('hidden-view');
@@ -495,6 +507,36 @@
             clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => { toast.classList.add('translate-y-24', 'opacity-0'); }, 3500);
         }
+        // 🌟 【新增】網頁一載入時，自動檢查有沒有登入過的記憶
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSession = localStorage.getItem('repair_sys_session');
+            
+            if (savedSession) {
+                try {
+                    const sessionData = JSON.parse(savedSession);
+                    currentUser = sessionData.currentUser;
+                    isAdminUser = sessionData.isAdminUser;
+
+                    // 恢復畫面 UI 狀態
+                    document.getElementById('user-name').innerText = currentUser.name;
+                    document.getElementById('user-avatar').src = currentUser.picture;
+                    document.getElementById('view-login').classList.add('hidden-view');
+                    document.getElementById('user-profile').classList.remove('hidden-view');
+                    document.getElementById('view-dashboard').classList.remove('hidden-view');
+
+                    if (isAdminUser) {
+                        document.getElementById('admin-badge').classList.remove('hidden-view');
+                        document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                    }
+
+                    // 預設停留在報修頁籤
+                    switchTab('submit');
+                } catch (e) {
+                    console.error("讀取舊資料失敗", e);
+                    localStorage.removeItem('repair_sys_session');
+                }
+            }
+        });
     </script>
 </body>
 </html>

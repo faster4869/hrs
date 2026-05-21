@@ -47,7 +47,7 @@
                 <h2 class="text-2xl font-bold mb-2">系統登入</h2>
                 <p class="text-slate-500 mb-8 text-sm">請使用 Google 帳號登入，系統將自動識別您的身分權限。</p>
                 <!-- ⚠️ 請替換為您的 Client ID -->
-                <div id="g_id_onload" data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com" data-context="signin" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
+                <div id="g_id_onload" data-client_id="169545043080-7ppqqevngfa7t56nla8crnv82gmmmi9j.apps.googleusercontent.com" data-context="signin" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
                 <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
             </div>
         </div>
@@ -237,7 +237,7 @@
     <script>
         lucide.createIcons();
         // ⚠️ 請填入您的最新 GAS Web App URL
-        const GAS_WEB_APP_URL = 'YOUR_GAS_DEPLOYMENT_URL';
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzLVQmNu5q1dMW0zc9lTfDRWmE2keLiHPPq8lrCFlOh96jrTTfaBV4Xkh8fNBm1TNuQng/exec';
         
         let currentUser = null; let isAdminUser = false; let allAdminRepairs = []; let userRole = '';
         let rawSelectedImages = []; let rawSelectedVideo = null; 

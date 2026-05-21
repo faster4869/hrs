@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>熱線雲端報修系統</title>
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Identity Services (SSO) -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- 引入 Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <script>
         tailwind.config = { theme: { extend: { colors: { primary: '#2563eb', secondary: '#475569' } } } }
     </script>
@@ -16,7 +20,6 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* 📍 讓文字斷行完美呈現的關鍵屬性 */
         .whitespace-pre-wrap { white-space: pre-wrap; word-break: break-word; }
     </style>
 </head>
@@ -28,8 +31,8 @@
                 <i data-lucide="wrench"></i><span class="hidden sm:inline">熱線雲端報修系統</span><span class="sm:hidden">報修系統</span>
             </div>
             <div id="user-profile" class="hidden-view flex items-center gap-3">
-                <span id="admin-badge" class="hidden-view bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">工程師</span>
-                <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200 object-cover">
+                <span id="admin-badge" class="hidden-view text-xs font-bold px-2 py-1 rounded"></span>
+                <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-200 object-cover" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
                 <span id="user-name" class="text-sm font-medium hidden sm:inline"></span>
                 <button onclick="handleLogout()" class="text-sm text-slate-500 hover:text-red-500 transition font-bold">登出</button>
             </div>
@@ -37,23 +40,28 @@
     </nav>
 
     <main class="max-w-5xl mx-auto p-4 mt-2">
+        <!-- 登入畫面 -->
         <div id="view-login" class="flex flex-col items-center justify-center py-16">
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 text-center max-w-md w-full">
                 <div class="w-16 h-16 bg-blue-100 text-primary rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="shield-check" class="w-8 h-8"></i></div>
                 <h2 class="text-2xl font-bold mb-2">系統登入</h2>
                 <p class="text-slate-500 mb-8 text-sm">請使用 Google 帳號登入，系統將自動識別您的身分權限。</p>
-                <div id="g_id_onload" data-client_id="169545043080-7ppqqevngfa7t56nla8crnv82gmmmi9j.apps.googleusercontent.com" data-context="signin" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
+                <!-- ⚠️ 請替換為您的 Client ID -->
+                <div id="g_id_onload" data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com" data-context="signin" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
                 <div class="g_id_signin flex justify-center" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
             </div>
         </div>
 
         <div id="view-dashboard" class="hidden-view">
+            <!-- 頁籤選單 -->
             <div class="flex gap-2 mb-6 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
                 <button onclick="switchTab('submit')" id="tab-btn-submit" class="px-4 py-2 rounded-lg font-medium bg-primary text-white flex items-center gap-2 whitespace-nowrap transition"><i data-lucide="file-plus" class="w-4 h-4"></i> 新增報修</button>
                 <button onclick="switchTab('history')" id="tab-btn-history" class="px-4 py-2 rounded-lg font-medium text-slate-500 hover:bg-slate-100 flex items-center gap-2 whitespace-nowrap transition"><i data-lucide="list" class="w-4 h-4"></i> 我的紀錄</button>
                 <button onclick="switchTab('admin')" id="tab-btn-admin" class="hidden-view px-4 py-2 rounded-lg font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-2 whitespace-nowrap ml-auto transition"><i data-lucide="settings-2" class="w-4 h-4"></i> 工程師管理</button>
+                <button onclick="switchTab('approve')" id="tab-btn-approve" class="hidden-view px-4 py-2 rounded-lg font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 flex items-center gap-2 whitespace-nowrap transition"><i data-lucide="file-check-2" class="w-4 h-4"></i> 長官簽核專區</button>
             </div>
 
+            <!-- 報修表單 -->
             <div id="tab-content-submit" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <h3 class="text-lg font-bold mb-4 border-b border-slate-100 pb-2 flex items-center gap-2"><i data-lucide="pen-tool" class="w-5 h-5 text-primary"></i> 填寫報修表單</h3>
                 <form id="repair-form" onsubmit="submitForm(event)">
@@ -72,8 +80,8 @@
 
                     <div class="mb-6 bg-slate-50 border border-slate-200 rounded-lg p-4">
                         <label class="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i data-lucide="paperclip" class="w-4 h-4"></i> 附件上傳 (非必填)</label>
-                        
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- 圖片上傳區塊 -->
                             <div class="bg-white p-3 rounded border border-slate-200">
                                 <label class="flex justify-between items-center cursor-pointer mb-2">
                                     <span class="text-sm font-medium text-slate-700">上傳照片 (最多3張)</span>
@@ -82,7 +90,7 @@
                                 </label>
                                 <div id="images-preview-container" class="flex gap-2 flex-wrap min-h-[4rem] items-center text-xs text-slate-400">尚無照片</div>
                             </div>
-
+                            <!-- 影片上傳區塊 -->
                             <div class="bg-white p-3 rounded border border-slate-200">
                                 <label class="flex justify-between items-center cursor-pointer mb-2">
                                     <span class="text-sm font-medium text-slate-700">上傳影片 (限1部/15MB)</span>
@@ -99,51 +107,151 @@
                 </form>
             </div>
 
-            <div id="tab-content-history" class="hidden-view"><div id="history-container" class="grid grid-cols-1 gap-4"></div></div>
+            <!-- 我的紀錄 -->
+            <div id="tab-content-history" class="hidden-view">
+                <div class="flex justify-end mb-4">
+                    <button onclick="forceRefreshHistory()" class="bg-white border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-50 text-xs font-semibold shadow-sm flex items-center gap-1.5 transition text-slate-600"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 手動同步更新</button>
+                </div>
+                <div id="history-container" class="grid grid-cols-1 gap-4"></div>
+            </div>
+            
+            <!-- 工程師管理後台 -->
             <div id="tab-content-admin" class="hidden-view">
                 <div class="flex justify-between items-end mb-4 flex-wrap gap-2">
                     <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="database" class="w-5 h-5"></i> 全站案件管理中心</h3>
                     <div class="flex gap-2 text-sm">
-                        <select id="admin-filter" onchange="loadAdminData()" class="border border-slate-300 rounded p-1.5 outline-none bg-white"><option value="ALL">全部狀態案件</option><option value="待處理" selected>未完結</option><option value="已完成">已完結案件</option></select>
-                        <button onclick="loadAdminData()" class="bg-white border border-slate-300 px-3 py-1.5 rounded hover:bg-slate-50 shadow-sm flex items-center gap-1 transition"><i data-lucide="refresh-cw" class="w-4 h-4 text-slate-600"></i></button>
+                        <select id="admin-filter" onchange="loadAdminData(false)" class="border border-slate-300 rounded p-1.5 outline-none bg-white">
+                            <option value="ALL">全部狀態</option>
+                            <option value="待處理" selected>未完結</option>
+                            <option value="已完成">已完結案件</option>
+                        </select>
+                        <button onclick="loadAdminData(true)" class="bg-white border border-slate-300 px-3 py-1.5 rounded hover:bg-slate-50 shadow-sm flex items-center gap-1 transition"><i data-lucide="refresh-cw" class="w-4 h-4 text-slate-600"></i></button>
                     </div>
                 </div>
                 <div id="admin-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
+
+            <!-- 長官簽核專區 -->
+            <div id="tab-content-approve" class="hidden-view">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-purple-600"></i> 詢比價預算審核公文中心</h3>
+                    <button onclick="loadApproveData(true)" class="bg-white border border-slate-300 px-3 py-1.5 rounded hover:bg-slate-50 text-xs font-semibold shadow-sm flex items-center gap-1 transition text-slate-600"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 重新載入公文</button>
+                </div>
+                <div id="approve-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
         </div>
     </main>
 
+    <!-- Toast 通知 -->
     <div id="toast" class="fixed bottom-6 right-1/2 translate-x-1/2 sm:translate-x-0 sm:right-6 bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-y-24 opacity-0 z-50 flex items-center gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i><span id="toast-msg" class="font-medium whitespace-nowrap"></span></div>
 
+    <!-- 客製化高質感對話框 -->
+    <div id="alert-modal" class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h4 class="font-bold text-lg text-slate-800 mb-2" id="alert-title">系統提示</h4>
+            <p class="text-slate-500 text-sm mb-6" id="alert-message"></p>
+            <button onclick="closeAlertModal()" class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">確定</button>
+        </div>
+    </div>
+
+    <!-- 工程師更新 Modal -->
     <div id="reply-modal" class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5 text-primary"></i> 案件狀態更新</h3>
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5 text-primary"></i> 案件處置與報價提報</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
+            
             <div class="p-6 overflow-y-auto">
                 <input type="hidden" id="modal-caseid">
-                <label class="block text-sm font-medium text-slate-700 mb-1">當前狀態變更為</label>
-                <select id="modal-status" class="w-full p-2.5 border border-slate-300 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-primary bg-white"><option value="待處理">待處理</option><option value="處理中">處理中</option><option value="已完成">已完成 (系統將自動寄信)</option></select>
-                <label class="block text-sm font-medium text-slate-700 mb-1">工程師維護紀錄/回覆</label>
-                <textarea id="modal-reply" rows="6" class="w-full p-2.5 border border-slate-300 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-primary whitespace-pre-wrap" placeholder="0530：已派工&#10;0521：已請工班處理..."></textarea>
-                <p class="text-xs text-slate-500 mb-6">此段文字將顯示於用戶查詢頁面，結案時也會附加於通知信件中。</p>
-                <div class="flex justify-end gap-3">
-                    <button onclick="closeModal()" class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
-                    <button onclick="submitUpdate()" id="modal-submit-btn" class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition flex items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> 儲存變更</button>
+                
+                <div class="flex gap-4 border-b border-slate-200 pb-3 mb-4 text-sm font-medium">
+                    <button onclick="switchModalMode('direct')" id="modal-tab-direct" class="pb-3 border-b-2 border-primary text-primary font-bold flex-1 text-center">直接結案/更新進度</button>
+                    <button onclick="switchModalMode('quotes')" id="modal-tab-quotes" class="pb-3 border-b-2 border-transparent text-slate-500 flex-1 text-center flex justify-center items-center gap-1"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i>提報詢比價方案</button>
+                </div>
+
+                <!-- 模式A：直接更新與結案 -->
+                <div id="modal-mode-direct">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">當前狀態變更為</label>
+                    <select id="modal-status" class="w-full p-2.5 border border-slate-300 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-primary bg-white"><option value="待處理">待處理</option><option value="處理中">處理中</option><option value="已完成">已完成 (系統將自動寄信)</option></select>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">工程師維護紀錄/回覆</label>
+                    <textarea id="modal-reply" rows="5" class="w-full p-2.5 border border-slate-300 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-primary whitespace-pre-wrap" placeholder="填寫最新維護處理紀錄..."></textarea>
+                    <div class="flex justify-end gap-3">
+                        <button onclick="closeModal()" class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
+                        <button onclick="submitUpdate()" id="modal-submit-btn" class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition flex items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> 儲存變更</button>
+                    </div>
+                </div>
+
+                <!-- 模式B：無限廠商詢比價動態提報 -->
+                <div id="modal-mode-quotes" class="hidden-view">
+                    <p class="text-xs text-amber-600 mb-4 bg-amber-50 p-2.5 rounded border border-amber-100 flex items-start gap-1.5"><i data-lucide="alert-triangle" class="w-4.5 h-4.5 flex-shrink-0 mt-0.5"></i> 請在此填寫比價方案與<b>上傳報價單掃描/PDF檔</b>。最高金額突破一萬將自動序列轉呈秘書長。</p>
+                    
+                    <!-- 方案動態容器 -->
+                    <div id="quotes-list-container" class="space-y-4 mb-4">
+                        <!-- 預設第一筆方案 -->
+                    </div>
+
+                    <button type="button" onclick="addNewQuoteRow()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold flex justify-center items-center gap-1 transition border border-dashed border-slate-300 mb-6"><i data-lucide="plus-circle" class="w-4 h-4"></i> ➕ 新增詢價/廠商方案</button>
+
+                    <div class="flex justify-end gap-3">
+                        <button onclick="closeModal()" class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
+                        <button onclick="submitQuotes()" id="modal-quotes-btn" class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> 呈報上層主管審核</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 長官審核簽公文 Modal -->
+    <div id="approve-modal" class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div class="bg-purple-50 border-b border-purple-100 px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-purple-900 flex items-center gap-2"><i data-lucide="stamp" class="w-5 h-5"></i> 線上公文核決與廠商決議</h3>
+                <button onclick="closeApproveModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="p-6">
+                <input type="hidden" id="approve-caseid">
+                <p class="text-xs text-slate-500 mb-4">請審閱工程師提報之詢比價單（可點選檢視報價單），選取最終選定的「方案」：</p>
+                
+                <!-- 長官動態方案單選按鈕容器 -->
+                <div id="approve-options-container" class="space-y-3 mb-6">
+                    <!-- 動態渲染 Radio 方案 -->
+                </div>
+
+                <label class="block text-sm font-medium text-slate-700 mb-1">長官核定簽核意見/指示 <span class="text-red-500">*</span></label>
+                <textarea id="approve-comment" rows="3" required class="w-full p-2.5 border border-slate-300 rounded-lg mb-6 outline-none focus:ring-2 focus:ring-purple-500" placeholder="請填寫對本案之指示..."></textarea>
+                
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeApproveModal()" class="px-4 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
+                    <button onclick="submitApprove()" id="approve-submit-btn" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition flex items-center gap-2"><i data-lucide="check" class="w-4 h-4"></i> 確認核定送出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
     <script>
         lucide.createIcons();
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzLVQmNu5q1dMW0zc9lTfDRWmE2keLiHPPq8lrCFlOh96jrTTfaBV4Xkh8fNBm1TNuQng/exec';
+        // ⚠️ 請填入您的最新 GAS Web App URL
+        const GAS_WEB_APP_URL = 'YOUR_GAS_DEPLOYMENT_URL';
         
-        let currentUser = null; let isAdminUser = false; let allAdminRepairs = []; 
-        let userRole = ''; // 📍 新增變數：用來記錄目前登入者的角色
-        let rawSelectedImages = []; // 存放 File 物件
-        let rawSelectedVideo = null; // 存放 File 物件
+        let currentUser = null; let isAdminUser = false; let allAdminRepairs = []; let userRole = '';
+        let rawSelectedImages = []; let rawSelectedVideo = null; 
+        let quoteFilesMap = {}; // 紀錄多廠商報價單上傳檔案的 Base64 暫存區
+
+        // 📍 【新增前端快取模組】：用來儲存已加載的資料，切換 Tab 時直接 0 秒載入
+        let cacheData = {
+            history: null,
+            historyTime: 0,
+            admin: null,
+            adminTime: 0,
+            approve: null,
+            approveTime: 0
+        };
 
         async function callGAS(payload) {
             try {
@@ -152,33 +260,42 @@
             } catch (error) { console.error("API Error:", error); throw error; }
         }
 
+        // 自訂對話框輔助函數
+        function showCustomAlert(msg, title = "系統提示") {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = msg;
+            document.getElementById('alert-modal').classList.remove('hidden-view');
+            lucide.createIcons();
+        }
+        function closeAlertModal() { document.getElementById('alert-modal').classList.add('hidden-view'); }
+
+        // 頁面載入時檢查是否曾登入 (自動恢復連線)
         document.addEventListener('DOMContentLoaded', () => {
             const savedSession = localStorage.getItem('repair_sys_session');
             if (savedSession) {
                 try {
                     const sessionData = JSON.parse(savedSession);
-                    currentUser = sessionData.currentUser; 
-                    isAdminUser = sessionData.isAdminUser;
-                    userRole = sessionData.userRole || 'Engineer'; // 📍 讀取暫存的角色
-
-                    document.getElementById('user-name').innerText = currentUser.name; 
-                    document.getElementById('user-avatar').src = currentUser.picture;
-                    document.getElementById('view-login').classList.add('hidden-view'); 
-                    document.getElementById('user-profile').classList.remove('hidden-view'); 
-                    document.getElementById('view-dashboard').classList.remove('hidden-view');
+                    currentUser = sessionData.currentUser; isAdminUser = sessionData.isAdminUser; userRole = sessionData.userRole || 'User';
+                    document.getElementById('user-name').innerText = currentUser.name; document.getElementById('user-avatar').src = currentUser.picture;
+                    document.getElementById('view-login').classList.add('hidden-view'); document.getElementById('user-profile').classList.remove('hidden-view'); document.getElementById('view-dashboard').classList.remove('hidden-view');
                     
                     if (isAdminUser) { 
                         const badge = document.getElementById('admin-badge');
-                        // 📍 動態判斷：如果是 Admin 就顯示紫色管理員，否則顯示紅色工程師
                         if (userRole.toLowerCase() === 'admin') {
-                            badge.innerText = '系統管理員';
-                            badge.className = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
+                            badge.innerText = '系統管理員'; badge.className = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
+                        } else if (userRole.toLowerCase() === 'manager') {
+                            badge.innerText = '直屬主管'; badge.className = "bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded";
+                            document.getElementById('tab-btn-approve').classList.remove('hidden-view');
+                        } else if (userRole.toLowerCase() === 'secretary_general') {
+                            badge.innerText = '秘書長'; badge.className = "bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded";
+                            document.getElementById('tab-btn-approve').classList.remove('hidden-view');
                         } else {
-                            badge.innerText = '工程師';
-                            badge.className = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
+                            badge.innerText = '工程師'; badge.className = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
                         }
                         badge.classList.remove('hidden-view');
-                        document.getElementById('tab-btn-admin').classList.remove('hidden-view'); 
+                        if (userRole.toLowerCase() !== 'manager' && userRole.toLowerCase() !== 'secretary_general') {
+                            document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                        }
                     }
                     switchTab('submit');
                 } catch (e) { localStorage.removeItem('repair_sys_session'); }
@@ -187,85 +304,136 @@
 
         async function handleCredentialResponse(response) {
             try {
-                const base64Url = response.credential.split('.')[1]; 
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const base64Url = response.credential.split('.')[1]; const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
                 const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) { return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); }).join(''));
                 const payload = JSON.parse(jsonPayload);
                 
                 currentUser = { email: payload.email, name: payload.name, picture: payload.picture, token: response.credential };
-                document.getElementById('user-name').innerText = currentUser.name; 
-                document.getElementById('user-avatar').src = currentUser.picture; 
-                document.getElementById('view-login').classList.add('hidden-view');
+                document.getElementById('user-name').innerText = currentUser.name; document.getElementById('user-avatar').src = currentUser.picture; document.getElementById('view-login').classList.add('hidden-view');
                 showToast("登入成功，驗證身分中...");
                 
                 const checkRes = await callGAS({ action: 'check_admin' });
                 if (checkRes.isAdmin) { 
-                    isAdminUser = true; 
-                    userRole = checkRes.role; // 📍 從後端取得 Google 表格填寫的角色
-
+                    isAdminUser = true; userRole = checkRes.role; 
                     const badge = document.getElementById('admin-badge');
-                    // 📍 動態判斷並變更顏色與文字
                     if (userRole.toLowerCase() === 'admin') {
-                        badge.innerText = '系統管理員';
-                        badge.className = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
+                        badge.innerText = '系統管理員'; badge.className = "bg-purple-100 text-purple-700 text-xs font-bold px-2 py-1 rounded";
+                    } else if (userRole.toLowerCase() === 'manager') {
+                        badge.innerText = '直屬主管'; badge.className = "bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded";
+                        document.getElementById('tab-btn-approve').classList.remove('hidden-view');
+                    } else if (userRole.toLowerCase() === 'secretary_general') {
+                        badge.innerText = '秘書長'; badge.className = "bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded";
+                        document.getElementById('tab-btn-approve').classList.remove('hidden-view');
                     } else {
-                        badge.innerText = '工程師';
-                        badge.className = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
+                        badge.innerText = '工程師'; badge.className = "bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded";
                     }
                     badge.classList.remove('hidden-view'); 
-                    document.getElementById('tab-btn-admin').classList.remove('hidden-view'); 
-                    
+                    if (userRole.toLowerCase() !== 'manager' && userRole.toLowerCase() !== 'secretary_general') {
+                        document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                    }
                     showToast(`歡迎 ${badge.innerText} ${currentUser.name} 進入系統`); 
-                } 
-                else {
-                    showToast(`歡迎回來，${currentUser.name}`);
-                }
-                
-                document.getElementById('user-profile').classList.remove('hidden-view'); 
-                document.getElementById('view-dashboard').classList.remove('hidden-view');
-                
-                // 📍 將角色資料 (userRole) 一併存入瀏覽器記憶體
+                } else { showToast(`歡迎回來，${currentUser.name}`); }
+                document.getElementById('user-profile').classList.remove('hidden-view'); document.getElementById('view-dashboard').classList.remove('hidden-view');
                 localStorage.setItem('repair_sys_session', JSON.stringify({ currentUser: currentUser, isAdminUser: isAdminUser, userRole: userRole }));
                 switchTab('submit');
-            } catch (e) { showToast("登入發生異常，請重新整理頁面。"); handleLogout(); }
+            } catch (e) { showToast("登入發生異常，請重試。"); handleLogout(); }
         }
 
         function handleLogout() {
-            currentUser = null; isAdminUser = false; localStorage.removeItem('repair_sys_session');
-            document.getElementById('user-profile').classList.add('hidden-view'); document.getElementById('admin-badge').classList.add('hidden-view'); document.getElementById('tab-btn-admin').classList.add('hidden-view'); document.getElementById('view-login').classList.remove('hidden-view'); document.getElementById('view-dashboard').classList.add('hidden-view');
+            currentUser = null; isAdminUser = false; userRole = ''; localStorage.removeItem('repair_sys_session');
+            // 清空快取資料
+            cacheData = { history: null, historyTime: 0, admin: null, adminTime: 0, approve: null, approveTime: 0 };
+            document.getElementById('user-profile').classList.add('hidden-view'); document.getElementById('admin-badge').classList.add('hidden-view'); document.getElementById('tab-btn-admin').classList.add('hidden-view'); document.getElementById('tab-btn-approve').classList.add('hidden-view'); document.getElementById('view-login').classList.remove('hidden-view'); document.getElementById('view-dashboard').classList.add('hidden-view');
             if (window.google) google.accounts.id.disableAutoSelect(); showToast("您已安全登出系統。");
         }
 
+        // 📍 【快取節流調配大腦】：點擊標籤時，檢查有沒有在 30 秒內載入過。若有，則 0 秒開啟
         function switchTab(tab) {
-            const tabs = ['submit', 'history', 'admin'];
+            const tabs = ['submit', 'history', 'admin', 'approve'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`tab-btn-${t}`); const content = document.getElementById(`tab-content-${t}`);
                 if (!btn || !content) return;
-                if (t === tab) { btn.className = `px-4 py-2 rounded-lg font-bold text-white flex items-center gap-2 whitespace-nowrap transition shadow-sm ${t==='admin'?'bg-red-500 ml-auto':'bg-primary'}`; content.classList.remove('hidden-view'); } 
-                else { btn.className = `px-4 py-2 rounded-lg font-medium flex items-center gap-2 whitespace-nowrap transition ${t==='admin'?'text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 ml-auto':'text-slate-500 hover:bg-slate-100'}`; content.classList.add('hidden-view'); }
+                if (t === tab) { btn.className = `px-4 py-2 rounded-lg font-bold text-white flex items-center gap-2 whitespace-nowrap transition shadow-sm ${t==='admin'||t==='approve'?'bg-red-500 ml-auto':'bg-primary'}`; content.classList.remove('hidden-view'); } 
+                else { btn.className = `px-4 py-2 rounded-lg font-medium flex items-center gap-2 whitespace-nowrap transition ${t==='admin'||t==='approve'?'text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 ml-auto':'text-slate-500 hover:bg-slate-100'}`; content.classList.add('hidden-view'); }
             });
-            if (!isAdminUser) document.getElementById('tab-btn-admin').classList.add('hidden-view');
-            if (tab === 'history') loadHistory(); if (tab === 'admin' && isAdminUser) loadAdminData();
+            if (!isAdminUser) { document.getElementById('tab-btn-admin').classList.add('hidden-view'); document.getElementById('tab-btn-approve').classList.add('hidden-view'); }
+            else {
+                if (userRole.toLowerCase() !== 'manager' && userRole.toLowerCase() !== 'secretary_general') {
+                    document.getElementById('tab-btn-admin').classList.remove('hidden-view');
+                    document.getElementById('tab-btn-approve').classList.add('hidden-view');
+                } else {
+                    document.getElementById('tab-btn-admin').classList.add('hidden-view');
+                    document.getElementById('tab-btn-approve').classList.remove('hidden-view');
+                }
+            }
+            
+            const now = Date.now();
+            if (tab === 'history') {
+                if (cacheData.history && (now - cacheData.historyTime < 30000)) {
+                    renderHistory(cacheData.history); // 直接利用快取渲染，0 秒延遲！
+                } else {
+                    loadHistory();
+                }
+            } 
+            if (tab === 'admin' && isAdminUser) {
+                if (cacheData.admin && (now - cacheData.adminTime < 30000)) {
+                    renderAdminData(); // 直接從快取篩選並秒開！
+                } else {
+                    loadAdminData(false);
+                }
+            } 
+            if (tab === 'approve' && isAdminUser) {
+                if (cacheData.approve && (now - cacheData.approveTime < 30000)) {
+                    renderApproveData(cacheData.approve);
+                } else {
+                    loadApproveData(false);
+                }
+            }
         }
 
-        // 📍 處理照片選擇 (最多3張)
+        // 垂直時間軸渲染 (Timeline)
+        function renderTimeline(timelineStr) {
+            if (!timelineStr) return '';
+            const logs = timelineStr.split('\n');
+            let html = `<div class="mt-4 border-l-2 border-slate-200 pl-4 space-y-4 ml-2">`;
+            logs.forEach((log, index) => {
+                const datePart = log.match(/\[(.*?)\]/);
+                const actualDate = datePart ? datePart[1] : '';
+                const textOnly = log.replace(/\[.*?\]/, '').trim();
+                
+                let icon = 'circle'; let iconColor = 'text-slate-400 bg-slate-100';
+                if (textOnly.includes('建立') || textOnly.includes('提報')) { icon = 'wrench'; iconColor = 'text-blue-600 bg-blue-100'; }
+                else if (textOnly.includes('核准') || textOnly.includes('核定') || textOnly.includes('通過')) { icon = 'check-circle-2'; iconColor = 'text-green-600 bg-green-100'; }
+                else if (textOnly.includes('退回') || textOnly.includes('駁回')) { icon = 'x-circle'; iconColor = 'text-red-600 bg-red-100'; }
+
+                html += `
+                <div class="relative pl-6">
+                    <span class="absolute -left-[27px] top-0.5 flex items-center justify-center w-5 h-5 rounded-full ring-4 ring-white ${iconColor}">
+                        <i data-lucide="${icon}" class="w-3 h-3"></i>
+                    </span>
+                    <div class="text-[10px] font-semibold text-slate-400 font-mono">${actualDate}</div>
+                    <div class="text-xs text-slate-700 whitespace-pre-wrap">${textOnly}</div>
+                </div>`;
+            });
+            html += `</div>`;
+            return html;
+        }
+
         function handleImageSelection(event) {
             const files = Array.from(event.target.files);
-            if (rawSelectedImages.length + files.length > 3) { alert('最多只能上傳 3 張照片！'); event.target.value = ''; return; }
+            if (rawSelectedImages.length + files.length > 3) { showCustomAlert('最多只能上傳 3 張照片！'); event.target.value = ''; return; }
             rawSelectedImages = rawSelectedImages.concat(files).slice(0, 3);
             renderAttachmentPreview();
         }
 
-        // 📍 處理影片選擇 (限制15MB)
         function handleVideoSelection(event) {
             const file = event.target.files[0];
             if (!file) return;
-            if (file.size > 15 * 1024 * 1024) { alert('影片檔案過大，請選擇小於 15MB 的影片！'); event.target.value = ''; return; }
+            if (file.size > 15 * 1024 * 1024) { showCustomAlert('影片檔案過大，請選擇小於 15MB 的影片！'); event.target.value = ''; return; }
             rawSelectedVideo = file;
             renderAttachmentPreview();
         }
 
-        // 📍 預覽畫面渲染
         function renderAttachmentPreview() {
             const imgContainer = document.getElementById('images-preview-container');
             if (rawSelectedImages.length === 0) imgContainer.innerHTML = '尚無照片';
@@ -289,11 +457,9 @@
         function removeVideo() { rawSelectedVideo = null; renderAttachmentPreview(); document.getElementById('video-upload').value = ''; }
         function clearAttachments() { rawSelectedImages = []; rawSelectedVideo = null; renderAttachmentPreview(); document.getElementById('images-upload').value = ''; document.getElementById('video-upload').value = ''; }
 
-        // 📍 圖片前端壓縮引擎 (避免 Base64 塞爆 GAS)
         function compressImage(file, maxWidth = 1024, quality = 0.7) {
             return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
+                const reader = new FileReader(); reader.readAsDataURL(file);
                 reader.onload = (event) => {
                     const img = new Image(); img.src = event.target.result;
                     img.onload = () => {
@@ -309,7 +475,6 @@
             });
         }
 
-        // 一般檔案轉 Base64 (用於影片)
         function fileToBase64(file) {
             return new Promise((resolve) => {
                 const reader = new FileReader(); reader.readAsDataURL(file);
@@ -319,29 +484,33 @@
 
         async function submitForm(e) {
             e.preventDefault();
-            if(!currentUser) return alert("連線遺失，請重新登入！");
+            if(!currentUser) return showCustomAlert("連線遺失，請重新登入！");
             const btn = document.getElementById('submit-btn'); const originalBtnText = btn.innerHTML;
             btn.disabled = true; btn.innerHTML = `<div class="loader" style="width:18px;height:18px;border-width:2px;border-top-color:#fff;"></div> 資料處理中...`; btn.classList.add('opacity-75', 'cursor-not-allowed');
 
             try {
                 const payload = { action: 'create', equipment: document.getElementById('equipment').value, category: document.getElementById('category').value, description: document.getElementById('description').value };
-                
-                // 處理並壓縮多張圖片
                 if (rawSelectedImages.length > 0) {
                     payload.images = [];
                     for(let file of rawSelectedImages) { payload.images.push(await compressImage(file)); }
                 }
-                // 處理影片
                 if (rawSelectedVideo) payload.video = await fileToBase64(rawSelectedVideo);
 
                 const result = await callGAS(payload);
-                if (result.status === 'success') { showToast('✅ 報修單提交成功！'); document.getElementById('repair-form').reset(); clearAttachments(); setTimeout(() => switchTab('history'), 1000); } 
-                else alert('發生錯誤: ' + result.message);
-            } catch (error) { alert('網路連線錯誤，請確認檔案大小後再試一次。'); } 
+                if (result.status === 'success') { 
+                    showToast('✅ 報修單提交成功！'); 
+                    document.getElementById('repair-form').reset(); 
+                    clearAttachments(); 
+                    
+                    // 清除歷史快取以強行更新
+                    cacheData.history = null; 
+                    setTimeout(() => switchTab('history'), 1000); 
+                } 
+                else showCustomAlert('發生錯誤: ' + result.message);
+            } catch (error) { showCustomAlert('網路連線錯誤，請確認檔案大小後再試一次。'); } 
             finally { btn.disabled = false; btn.innerHTML = originalBtnText; btn.classList.remove('opacity-75', 'cursor-not-allowed'); }
         }
 
-        // 📍 附件網址解析工具
         function parseAttachments(str) {
             let images = []; let video = null;
             if(!str) return {images, video};
@@ -349,7 +518,7 @@
             parts.forEach(p => {
                 if (p.startsWith('vid:')) video = p.replace('vid:', '');
                 else if (p.startsWith('img:')) images.push(p.replace('img:', ''));
-                else if (p.trim() !== '') images.push(p.trim()); // 相容舊資料
+                else if (p.trim() !== '') images.push(p.trim()); 
             });
             return {images, video};
         }
@@ -366,9 +535,59 @@
             container.innerHTML = `<div class="text-center py-16 text-slate-500 flex flex-col items-center"><div class="loader mb-4"></div><p>正在撈取您的報修紀錄...</p></div>`;
             try {
                 const result = await callGAS({ action: 'get_history' });
-                if (result.status === 'success') renderHistory(result.data);
+                if (result.status === 'success') {
+                    // 📍 寫入快取記憶體
+                    cacheData.history = result.data;
+                    cacheData.historyTime = Date.now();
+                    renderHistory(result.data);
+                }
                 else container.innerHTML = `<div class="text-center py-10 text-red-500">無法取得資料：${result.message}</div>`;
             } catch (error) { container.innerHTML = `<div class="text-center py-10 text-red-500">網路連線異常，無法取得紀錄。</div>`; }
+        }
+
+        // 強制手動同步刷新
+        function forceRefreshHistory() {
+            cacheData.history = null;
+            loadHistory();
+        }
+
+        function renderQuotesTable(quotesJson, selectedObjStr = '', showFiles = false) {
+            if (!quotesJson || quotesJson === '[]') return '';
+            try {
+                const quotes = JSON.parse(quotesJson);
+                let selectedQuote = null;
+                if(selectedObjStr && selectedObjStr.startsWith('{')) {
+                    selectedQuote = JSON.parse(selectedObjStr);
+                }
+
+                let html = `
+                <div class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <h5 class="text-xs font-bold text-slate-500 mb-2.5 flex items-center gap-1"><i data-lucide="scale" class="w-3.5 h-3.5"></i> 維修比價方案核決清單：</h5>
+                    <div class="space-y-2">`;
+                
+                quotes.forEach((q, idx) => {
+                    const isSelected = selectedQuote && selectedQuote.vendor === q.vendor && selectedQuote.price == q.price;
+                    const fileLinkHtml = (showFiles && q.fileUrl)
+                      ? `<a href="${q.fileUrl}" target="_blank" class="inline-flex items-center gap-0.5 text-[11px] text-blue-600 hover:underline font-bold mt-1.5"><i data-lucide="file-text" class="w-3 h-3"></i> 檢視報價單檔案/合約</a>`
+                      : '';
+
+                    html += `
+                    <div class="p-3 rounded-lg border text-xs flex justify-between items-center transition ${isSelected ? 'bg-green-50 border-green-300 ring-2 ring-green-100' : 'bg-white border-slate-200'}">
+                        <div class="flex-1 pr-3">
+                            <span class="font-bold text-slate-800 text-sm block">${q.vendor}</span>
+                            <span class="text-slate-500 mt-0.5 block whitespace-pre-wrap">${q.desc}</span>
+                            ${fileLinkHtml}
+                        </div>
+                        <div class="text-right flex flex-col items-end flex-shrink-0">
+                            <span class="font-bold text-slate-900 text-sm font-mono">$${q.price}</span>
+                            ${isSelected ? `<span class="bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded text-[10px] mt-1 inline-block">★ 長官核定方案</span>` : ''}
+                        </div>
+                    </div>`;
+                });
+                
+                html += `</div></div>`;
+                return html;
+            } catch(e) { return ''; }
         }
 
         function renderHistory(records) {
@@ -376,14 +595,15 @@
             if (!records || records.length === 0) { container.innerHTML = `<div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center"><i data-lucide="inbox" class="w-16 h-16 text-slate-200 mx-auto mb-4"></i><p class="text-slate-500 font-medium">您目前沒有任何報修紀錄！</p></div>`; lucide.createIcons(); return; }
 
             records.reverse().forEach(record => {
-                let statusColor = record.status === '已完成' ? 'bg-green-100 text-green-800 border-green-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200');
+                let statusColor = record.status === '已完成' ? 'bg-green-100 text-green-800 border-green-200' : (record.status.includes('簽核') ? 'bg-purple-100 text-purple-800 border-purple-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'));
                 const atts = parseAttachments(record.imageUrl);
                 
-                // 產生縮圖 HTML
                 let imgsHTML = '';
                 if(atts.images.length > 0) {
                     imgsHTML = `<div class="flex gap-2 mt-3 flex-wrap">` + atts.images.map(img => `<a href="${img}" target="_blank"><img src="${getThumbnailUrl(img)}" class="w-16 h-16 object-cover rounded border border-slate-200 hover:opacity-80"></a>`).join('') + `</div>`;
                 }
+
+                const quoteTableHTML = renderQuotesTable(record.quotesJson, record.finalDecision, false);
 
                 const cardHTML = `
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
@@ -392,48 +612,70 @@
                         <span class="text-xs px-2.5 py-1 rounded-full font-bold border ${statusColor}">${record.status}</span>
                     </div>
                     <p class="text-xs text-slate-400 mb-3"><i data-lucide="tag" class="inline w-3 h-3"></i> ${record.category} | 案號: ${record.caseId}</p>
-                    
                     <div class="text-slate-700 text-sm mb-3 bg-slate-50 p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">${record.description}</div>
-                    
                     ${imgsHTML}
                     ${atts.video ? `<a href="${atts.video}" target="_blank" class="inline-flex items-center gap-1 mt-3 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-100"><i data-lucide="play-circle" class="w-4 h-4"></i> 觀看影片附件</a>` : ''}
                     
-                    ${record.reply ? `<div class="text-sm bg-blue-50 border-l-4 border-blue-500 p-3 text-blue-800 mt-4 rounded-r-lg whitespace-pre-wrap"><div class="font-bold mb-1">工程師回覆：</div>${record.reply}</div>` : ''}
+                    ${quoteTableHTML}
+
+                    <!-- 垂直可視化簽核歷程時間軸 -->
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                        <h5 class="text-xs font-bold text-slate-500 mb-3 flex items-center gap-1"><i data-lucide="history" class="w-3.5 h-3.5"></i> 案件動態簽核歷程日誌：</h5>
+                        ${renderTimeline(record.timeline)}
+                    </div>
                     
-                    <div class="text-xs text-slate-400 mt-4 text-right pt-2 border-t border-slate-50"><i data-lucide="clock" class="inline w-3 h-3"></i> ${record.createdAt}</div>
+                    ${record.reply ? `<div class="text-sm bg-blue-50 border-l-4 border-blue-500 p-3 text-blue-800 mt-4 rounded-r-lg whitespace-pre-wrap"><div class="font-bold mb-1">工程師最新回覆：</div>${record.reply}</div>` : ''}
+                    
+                    <div class="text-xs text-slate-400 mt-4 text-right pt-2 border-t border-slate-50"><i data-lucide="clock" class="inline w-3 h-3"></i> 建立於 ${record.createdAt}</div>
                 </div>`;
                 container.insertAdjacentHTML('beforeend', cardHTML);
             });
             lucide.createIcons();
         }
 
-        async function loadAdminData() {
+        // 📍 【優化大腦】：載入管理員資料，可選用 forceRefresh 強制重讀或用快取
+        async function loadAdminData(forceRefresh = false) {
             const container = document.getElementById('admin-container');
-            container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500"><div class="loader mx-auto mb-4"></div><p>載入後台資料中...</p></div>`;
+            const now = Date.now();
+            
+            if (!forceRefresh && cacheData.admin && (now - cacheData.adminTime < 30000)) {
+                renderAdminData(); return;
+            }
+
+            container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500"><div class="loader mx-auto mb-4"></div><p>載入工程後台資料中...</p></div>`;
             try {
                 const res = await callGAS({ action: 'get_all_repairs' });
-                if(res.status === 'success') { allAdminRepairs = res.data.reverse(); renderAdminData(); }
+                if(res.status === 'success') {
+                    // 寫入快取
+                    cacheData.admin = res.data;
+                    cacheData.adminTime = Date.now();
+                    allAdminRepairs = res.data.reverse(); 
+                    renderAdminData(); 
+                }
             } catch(e) { container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4">網路錯誤。</div>`; }
         }
 
         function renderAdminData() {
-            const container = document.getElementById('admin-container');
-            const filter = document.getElementById('admin-filter').value;
+            const container = document.getElementById('admin-container'); const filter = document.getElementById('admin-filter').value;
             container.innerHTML = '';
-
-            let filtered = filter === 'ALL' ? allAdminRepairs : (filter === '待處理' ? allAdminRepairs.filter(r => r.status !== '已完成') : allAdminRepairs.filter(r => r.status === '已完成'));
-            if(filtered.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 border border-dashed rounded-xl">無符合案件。</div>`; return; }
+            
+            // 使用快取資料進行快速篩選與排列
+            const dataToRender = allAdminRepairs.length > 0 ? allAdminRepairs : (cacheData.admin ? [...cacheData.admin].reverse() : []);
+            
+            let filtered = filter === 'ALL' ? dataToRender : (filter === '待處理' ? dataToRender.filter(r => r.status !== '已完成' && r.status !== '已退回') : dataToRender.filter(r => r.status === '已完成'));
+            if(filtered.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400 border border-dashed rounded-xl">目前無符合案件。</div>`; return; }
 
             filtered.forEach(record => {
-                let sColor = record.status === '已完成' ? 'bg-green-100 text-green-700 border-green-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200');
+                let sColor = record.status === '已完成' ? 'bg-green-100 text-green-700 border-green-200' : (record.status.includes('簽核') ? 'bg-purple-100 text-purple-700 border-purple-200' : (record.status === '處理中' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'));
                 const btnData = encodeURIComponent(JSON.stringify(record));
                 const atts = parseAttachments(record.imageUrl);
 
-                // 📍 【修改點】直接將縮圖渲染在後台卡片中
                 let imgsHTML = '';
                 if(atts.images.length > 0) {
                     imgsHTML = `<div class="flex gap-2 mt-2 flex-wrap">` + atts.images.map(img => `<a href="${img}" target="_blank"><img src="${getThumbnailUrl(img)}" class="w-12 h-12 object-cover rounded border border-slate-200 hover:opacity-80 transition" title="點擊放大"></a>`).join('') + `</div>`;
                 }
+
+                const quoteSumHTML = renderQuotesTable(record.quotesJson, record.finalDecision, true);
 
                 container.innerHTML += `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition flex flex-col h-full">
@@ -445,12 +687,11 @@
                         <button onclick="openModal('${btnData}')" class="bg-slate-50 border border-slate-200 p-2 rounded-lg text-slate-700 flex-shrink-0"><i data-lucide="edit" class="w-4 h-4"></i></button>
                     </div>
                     <div class="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2 space-y-1"><div>案號: <span class="font-mono text-slate-400">${record.caseId}</span></div><div class="truncate">提報人: ${record.reporter}</div><div>時間: ${record.createdAt}</div></div>
-                    
                     <div class="text-sm text-slate-700 mb-2 bg-slate-50 p-2 rounded flex-grow whitespace-pre-wrap">${record.description}</div>
-                    <div class="text-sm text-slate-700 mb-2 bg-slate-50 p-2 rounded flex-grow whitespace-pre-wrap">${record.reply}</div>
-                    
                     ${imgsHTML}
                     
+                    ${quoteSumHTML}
+
                     <div class="flex gap-2 mt-auto pt-3">
                         ${atts.video ? `<a href="${atts.video}" target="_blank" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded flex items-center gap-1"><i data-lucide="film" class="w-3 h-3"></i>觀看影片</a>` : ''}
                     </div>
@@ -459,24 +700,363 @@
             lucide.createIcons();
         }
 
+        // 📍 主管專區優化
+        async function loadApproveData(forceRefresh = false) {
+            const container = document.getElementById('approve-container');
+            const now = Date.now();
+            
+            if(!forceRefresh && cacheData.approve && (now - cacheData.approveTime < 30000)) {
+                renderApproveData(cacheData.approve); return;
+            }
+
+            container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500"><div class="loader mx-auto mb-4"></div><p>撈取待簽核預算案...</p></div>`;
+            try {
+                const res = await callGAS({ action: 'get_all_repairs' });
+                if(res.status === 'success') {
+                    const list = res.data.reverse();
+                    let pendingList = [];
+                    
+                    if (userRole.toLowerCase() === 'manager') {
+                        pendingList = list.filter(r => r.supervisorStatus === '待審核' && r.supervisorEmail.trim().toLowerCase() === currentUser.email.trim().toLowerCase());
+                    } else if (userRole.toLowerCase() === 'secretary_general') {
+                        pendingList = list.filter(r => r.secretaryStatus === '待審核');
+                    }
+                    
+                    // 寫入快取
+                    cacheData.approve = pendingList;
+                    cacheData.approveTime = Date.now();
+                    renderApproveData(pendingList);
+                }
+            } catch(e) { container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4">讀取簽核公文發生連線錯誤。</div>`; }
+        }
+
+        function renderApproveData(records) {
+            const container = document.getElementById('approve-container');
+            container.innerHTML = '';
+            if(records.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-400 bg-white rounded-2xl border border-dashed p-6"><i data-lucide="folder-check" class="w-16 h-16 text-slate-200 mx-auto mb-3"></i>您好！您手邊所有報修公文皆已核決完畢。</div>`;
+                lucide.createIcons(); return;
+            }
+
+            records.forEach(record => {
+                const btnData = encodeURIComponent(JSON.stringify(record));
+                const quotes = JSON.parse(record.quotesJson || '[]');
+                
+                let quotesRowsHtml = '';
+                quotes.forEach((q, idx) => {
+                    const fileLinkHtml = q.fileUrl
+                      ? `<a href="${q.fileUrl}" target="_blank" class="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline font-bold mt-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> 點此核對廠商原始報價單/合約</a>`
+                      : `<span class="text-xs text-slate-400 mt-1">(無報價單附件)</span>`;
+
+                    quotesRowsHtml += `
+                    <div class="text-sm bg-slate-50 text-slate-800 p-2.5 rounded-lg border border-slate-200 flex justify-between items-center gap-2">
+                        <div class="flex-1">
+                            <span><b>方案 ${idx+1} (${q.vendor}):</b> ${q.desc}</span>
+                            ${fileLinkHtml}
+                        </div>
+                        <span class="font-bold font-mono text-red-600 flex-shrink-0 text-base">$${q.price}</span>
+                    </div>
+                    `;
+                });
+
+                container.innerHTML += `
+                <div class="bg-white p-5 rounded-2xl border border-purple-200 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs bg-purple-100 text-purple-700 font-bold px-2.5 py-1 rounded">待核決</span>
+                        <button onclick="openApproveModal('${btnData}')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 transition"><i data-lucide="stamp" class="w-4 h-4"></i> 進行線上核決</button>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-base leading-tight mb-2">${record.equipment}</h4>
+                    <div class="text-xs text-slate-500 mb-3 space-y-1">
+                        <div>案號: <span class="font-mono">${record.caseId}</span></div>
+                        <div>立案同仁: ${record.reporter}</div>
+                    </div>
+                    <div class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4 whitespace-pre-wrap">${record.description}</div>
+                    
+                    <div class="border-t border-purple-100 pt-3 space-y-2">
+                        <div class="text-xs font-bold text-slate-500 mb-1">提報比價方案明細 (${quotes.length} 家)：</div>
+                        ${quotesRowsHtml}
+                    </div>
+                </div>`;
+            });
+            lucide.createIcons();
+        }
+
+        function addNewQuoteRow() {
+            const container = document.getElementById('quotes-list-container');
+            const rowCount = container.children.length;
+            const rowId = `quote-row-${Date.now()}`;
+            
+            const html = `
+            <div id="${rowId}" class="bg-slate-50 border border-slate-200 p-3 rounded-lg relative quote-data-row">
+                <button type="button" onclick="removeQuoteRow('${rowId}')" class="absolute top-2 right-2 text-red-500 hover:text-red-700" title="刪除本方案"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
+                <h4 class="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1"><i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> 廠商方案 ${rowCount + 1}</h4>
+                <div class="grid grid-cols-1 gap-2 mb-2">
+                    <input type="text" class="quote-vendor p-2 border border-slate-300 rounded text-sm outline-none" placeholder="廠商名稱 (例如：巨匠科技)" required>
+                    <input type="text" class="quote-desc p-2 border border-slate-300 rounded text-sm outline-none" placeholder="處置描述與保固 (例如：更換投影機，保固半年)" required>
+                    <div class="relative">
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+                        <input type="number" class="quote-price w-full p-2 pl-6 border border-slate-300 rounded text-sm outline-none" placeholder="金額 (例如：22000)" required>
+                    </div>
+                    
+                    <div class="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
+                        <span class="text-[11px] font-bold text-slate-500 flex items-center gap-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> 報價單單據/掃描檔上傳 (PDF/圖檔)：</span>
+                        <div class="flex items-center gap-2">
+                            <label class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold px-2 py-1 rounded cursor-pointer transition flex items-center gap-0.5">
+                                <i data-lucide="upload-cloud" class="w-3 h-3"></i> 選擇檔案
+                                <input type="file" accept="image/*,application/pdf" class="hidden quote-file-input" onchange="handleQuoteFileSelection(event, '${rowId}')">
+                            </label>
+                            <button type="button" onclick="clearQuoteFile('${rowId}')" class="text-red-500 hover:text-red-700 hidden-view flex items-center" id="clear-file-btn-${rowId}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <div id="file-status-${rowId}" class="text-[10px] text-slate-400 mt-1 truncate">未選擇任何單據檔案 (限 10MB 內)</div>
+                </div>
+            </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+            lucide.createIcons();
+            validateQuoteRows();
+        }
+
+        function removeQuoteRow(rowId) {
+            const row = document.getElementById(rowId);
+            if(row) row.remove();
+            delete quoteFilesMap[rowId]; 
+            reindexQuoteRows();
+            validateQuoteRows();
+        }
+
+        function reindexQuoteRows() {
+            const container = document.getElementById('quotes-list-container');
+            Array.from(container.children).forEach((row, idx) => {
+                const header = row.querySelector('h4');
+                if(header) header.innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> 廠商方案 ${idx + 1}`;
+            });
+            lucide.createIcons();
+        }
+
+        function validateQuoteRows() {
+            const container = document.getElementById('quotes-list-container');
+            const delButtons = container.querySelectorAll('button');
+            if(container.children.length <= 1) {
+                delButtons.forEach(btn => btn.classList.add('hidden-view'));
+            } else {
+                delButtons.forEach(btn => btn.classList.remove('hidden-view'));
+            }
+        }
+
+        async function handleQuoteFileSelection(event, rowId) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.size > 10 * 1024 * 1024) {
+                showCustomAlert('報價單單據檔案過大，請選擇小於 10MB 的 PDF 或圖片！');
+                event.target.value = '';
+                return;
+            }
+
+            const statusLabel = document.getElementById(`file-status-${rowId}`);
+            const clearBtn = document.getElementById(`clear-file-btn-${rowId}`);
+            statusLabel.innerHTML = `<span class="text-blue-600 font-bold flex items-center gap-0.5"><i class="loader animate-spin" style="width:10px;height:10px;border-width:1.5px;border-top-color:#2563eb;"></i> 檔案處理中...</span>`;
+
+            try {
+                let fileData = null;
+                if (file.type.startsWith('image/')) {
+                    fileData = await compressImage(file, 1200, 0.75);
+                } else {
+                    fileData = await fileToBase64(file);
+                }
+                
+                quoteFilesMap[rowId] = fileData;
+                statusLabel.innerHTML = `<span class="text-green-600 font-bold flex items-center gap-0.5">✓ 已成功載入：${file.name}</span>`;
+                clearBtn.classList.remove('hidden-view');
+            } catch (err) {
+                statusLabel.innerHTML = `<span class="text-red-500 font-bold">檔案載入失敗，請重試！</span>`;
+                quoteFilesMap[rowId] = null;
+                clearBtn.classList.add('hidden-view');
+            }
+        }
+
+        function clearQuoteFile(rowId) {
+            delete quoteFilesMap[rowId];
+            document.getElementById(`file-status-${rowId}`).innerHTML = "未選擇任何單據檔案 (限 10MB 內)";
+            document.getElementById(`clear-file-btn-${rowId}`).classList.add('hidden-view');
+            const row = document.getElementById(rowId);
+            const input = row.querySelector('.quote-file-input');
+            if (input) input.value = '';
+        }
+
+        function switchModalMode(mode) {
+            const btnDirect = document.getElementById('modal-tab-direct');
+            const btnQuotes = document.getElementById('modal-tab-quotes');
+            const viewDirect = document.getElementById('modal-mode-direct');
+            const viewQuotes = document.getElementById('modal-mode-quotes');
+
+            if (mode === 'direct') {
+                btnDirect.className = "pb-3 border-b-2 border-primary text-primary font-bold flex-1 text-center";
+                btnQuotes.className = "pb-3 border-b-2 border-transparent text-slate-500 flex-1 text-center flex justify-center items-center gap-1";
+                viewDirect.classList.remove('hidden-view');
+                viewQuotes.classList.add('hidden-view');
+            } else {
+                btnDirect.className = "pb-3 border-b-2 border-transparent text-slate-500 flex-1 text-center";
+                btnQuotes.className = "pb-3 border-b-2 border-primary text-primary font-bold flex-1 text-center flex justify-center items-center gap-1";
+                viewDirect.classList.add('hidden-view');
+                viewQuotes.classList.remove('hidden-view');
+            }
+        }
+
         function openModal(dataStr) {
             const data = JSON.parse(decodeURIComponent(dataStr));
             document.getElementById('modal-caseid').value = data.caseId;
             document.getElementById('modal-status').value = data.status;
             document.getElementById('modal-reply').value = data.reply || '';
+            
+            quoteFilesMap = {};
+            const container = document.getElementById('quotes-list-container');
+            container.innerHTML = '';
+            addNewQuoteRow();
+
+            switchModalMode('direct');
             document.getElementById('reply-modal').classList.remove('hidden-view');
         }
+
         function closeModal() { document.getElementById('reply-modal').classList.add('hidden-view'); }
+
+        async function submitQuotes() {
+            const btn = document.getElementById('modal-quotes-btn');
+            const caseId = document.getElementById('modal-caseid').value;
+            const rows = document.querySelectorAll('.quote-data-row');
+            
+            let quotesArray = [];
+            let isValid = true;
+
+            rows.forEach(row => {
+                const rowId = row.id;
+                const vendor = row.querySelector('.quote-vendor').value.trim();
+                const desc = row.querySelector('.quote-desc').value.trim();
+                const price = row.querySelector('.quote-price').value.trim();
+
+                if(!vendor || !desc || !price) {
+                    isValid = false; return;
+                }
+                
+                const attachedFile = quoteFilesMap[rowId] || null;
+
+                quotesArray.push({ 
+                    vendor: vendor, 
+                    desc: desc, 
+                    price: parseInt(price),
+                    file: attachedFile 
+                });
+            });
+
+            if(!isValid || quotesArray.length === 0) {
+                showCustomAlert('所有方案的「廠商、規格、金額」皆必須填寫完整！'); return;
+            }
+
+            btn.innerHTML = `<div class="loader" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div>`; btn.disabled = true;
+
+            try {
+                const res = await callGAS({ 
+                    action: 'submit_quotes', 
+                    caseId: caseId, 
+                    quotes: quotesArray 
+                });
+                
+                if (res.status === 'success') {
+                    showToast('✅ 動態多廠商預算公文呈報主管成功！');
+                    cacheData.admin = null; // 強制下次重撈
+                    closeModal(); loadAdminData(true);
+                } else { showCustomAlert('提報失敗：' + res.message); }
+            } catch(e) { showCustomAlert('連線異常，提報失敗。'); }
+            finally { btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> 呈報上層主管審核'; lucide.createIcons(); btn.disabled = false; }
+        }
+
+        function openApproveModal(dataStr) {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            document.getElementById('approve-caseid').value = data.caseId;
+            document.getElementById('approve-comment').value = '';
+
+            const quotes = JSON.parse(data.quotesJson || '[]');
+            const container = document.getElementById('approve-options-container');
+            container.innerHTML = '';
+
+            quotes.forEach((q, idx) => {
+                const fileLinkHtml = q.fileUrl
+                  ? `<a href="${q.fileUrl}" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline font-bold mt-1 pl-6"><i data-lucide="external-link" class="w-3 h-3"></i> 點此檢視報價單檔案/PDF</a>`
+                  : `<span class="text-xs text-slate-400 mt-1 pl-6 block">(無報價單附件)</span>`;
+
+                container.innerHTML += `
+                <label class="block p-3 border border-slate-200 rounded-xl hover:border-purple-300 transition cursor-pointer bg-slate-50 flex items-start gap-2">
+                    <input type="radio" name="approve-decision" value="${idx}" ${idx === 0 ? 'checked' : ''} class="mt-1">
+                    <div class="flex-1">
+                        <span class="font-bold text-sm text-slate-800">核定並選用【方案 ${idx+1}】— ${q.vendor}</span>
+                        <div class="text-xs text-slate-500 mt-1 pl-6">${q.desc}</div>
+                        <div class="text-xs text-red-600 font-bold mt-1 pl-6 font-mono">金額：$${q.price} 元</div>
+                        ${fileLinkHtml}
+                    </div>
+                </label>
+                `;
+            });
+
+            container.innerHTML += `
+            <label class="block p-3 border border-red-200 rounded-xl hover:border-red-300 transition cursor-pointer bg-red-50 flex items-start gap-2">
+                <input type="radio" name="approve-decision" value="Reject" class="mt-1">
+                <div>
+                    <span class="font-bold text-sm text-red-800">退回公文 (駁回不修 / 報廢)</span>
+                    <div class="text-xs text-red-600 mt-1 pl-6">本案件將直接退回並結案。</div>
+                </div>
+            </label>
+            `;
+
+            document.getElementById('approve-modal').classList.remove('hidden-view');
+            lucide.createIcons();
+        }
+
+        function closeApproveModal() { document.getElementById('approve-modal').classList.add('hidden-view'); }
+
+        async function submitApprove() {
+            const btn = document.getElementById('approve-submit-btn');
+            const caseId = document.getElementById('approve-caseid').value;
+            const comment = document.getElementById('approve-comment').value.trim();
+            const selectedRadio = document.querySelector('input[name="approve-decision"]:checked');
+
+            if(!selectedRadio) { showCustomAlert('請選擇一項核決決議！'); return; }
+            if(!comment) { showCustomAlert('請填寫長官核決意見與指示！'); return; }
+
+            const decision = selectedRadio.value;
+            btn.innerHTML = `<div class="loader" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div>`; btn.disabled = true;
+
+            try {
+                const res = await callGAS({ 
+                    action: 'approve_case', 
+                    caseId: caseId, 
+                    decision: decision, 
+                    comment: comment, 
+                    reviewerRole: userRole 
+                });
+                
+                if (res.status === 'success') {
+                    showToast('✅ 線上詢比價公文簽核核定成功！');
+                    cacheData.approve = null; // 清除簽核快取
+                    closeApproveModal(); loadApproveData(true);
+                } else { showCustomAlert('簽核失敗：' + res.message); }
+            } catch(e) { showCustomAlert('核定失敗，請重試。'); }
+            finally { btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> 確認核定送出'; lucide.createIcons(); btn.disabled = false; }
+        }
 
         async function submitUpdate() {
             const btn = document.getElementById('modal-submit-btn'); const caseId = document.getElementById('modal-caseid').value;
             const newStatus = document.getElementById('modal-status').value; const newReply = document.getElementById('modal-reply').value;
-            btn.innerHTML = `<div class="loader" style="width:16px;height:16px;border-top-color:#fff;"></div>`; btn.disabled = true;
+            btn.innerHTML = `<div class="loader" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div>`; btn.disabled = true;
 
             try {
                 const res = await callGAS({ action: 'update_repair', caseId: caseId, status: newStatus, reply: newReply });
-                if(res.status === 'success') { showToast('✅ 案件已更新'); closeModal(); loadAdminData(); } else alert('更新失敗: ' + res.message);
-            } catch(e) { alert('網路異常'); } finally { btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> 儲存變更'; lucide.createIcons(); btn.disabled = false; }
+                if(res.status === 'success') { 
+                    showToast('✅ 案件狀態已更新'); 
+                    cacheData.admin = null; // 清除快取以在更新後重新加載
+                    closeModal(); 
+                    loadAdminData(true); 
+                } else showCustomAlert('更新失敗: ' + res.message);
+            } catch(e) { showCustomAlert('網路異常'); } finally { btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> 儲存變更'; lucide.createIcons(); btn.disabled = false; }
         }
         
         let toastTimeout; function showToast(msg) { const toast = document.getElementById('toast'); document.getElementById('toast-msg').innerText = msg; toast.classList.remove('translate-y-24', 'opacity-0'); clearTimeout(toastTimeout); toastTimeout = setTimeout(() => { toast.classList.add('translate-y-24', 'opacity-0'); }, 3500); }

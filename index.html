@@ -30,7 +30,7 @@
         }
 
         @keyframes spin {
-            0% {
+            0 {
                 transform: rotate(0deg);
             }
 
@@ -51,6 +51,11 @@
         .whitespace-pre-wrap {
             white-space: pre-wrap;
             word-break: break-word;
+        }
+        
+        /* 解決 iOS 滾動卡頓 */
+        .overscroll-contain {
+            overscroll-behavior: contain;
         }
     </style>
 </head>
@@ -250,7 +255,7 @@
 
     <!-- 客製化高質感對話框 -->
     <div id="alert-modal"
-        class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        class="hidden-view fixed inset-0 bg-slate-900 /60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center">
             <div
                 class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -263,18 +268,18 @@
         </div>
     </div>
 
-    <!-- 總務更新 Modal -->
+    <!-- 總務更新 Modal (已修正手機滾動穿透與可滾動視窗) -->
     <div id="reply-modal"
-        class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+        class="hidden-view fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm overscroll-contain">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i data-lucide="edit-3"
                         class="w-5 h-5 text-primary"></i> 案件處置/報價簽核</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x"
                         class="w-5 h-5"></i></button>
             </div>
 
-            <div class="p-6 overflow-y-auto">
+            <div class="p-6 overflow-y-auto no-scrollbar flex-grow">
                 <input type="hidden" id="modal-caseid">
 
                 <div class="flex gap-4 border-b border-slate-200 pb-3 mb-4 text-sm font-medium">
@@ -305,9 +310,9 @@
                     <p class="text-[11px] text-slate-400 mb-6 leading-relaxed">報價金額請利用簽核提交功能送出，簽核進行中會鎖定更新進度!</p>
 
                     <div class="flex justify-end gap-3">
-                        <button onclick="closeModal()"
+                        <button type="button" onclick="closeModal()"
                             class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
-                        <button onclick="submitUpdate()" id="modal-submit-btn"
+                        <button type="button" onclick="submitUpdate()" id="modal-submit-btn"
                             class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white font-bold rounded-lg transition flex items-center gap-2"><i
                                 data-lucide="save" class="w-4 h-4"></i> 儲存變更</button>
                     </div>
@@ -315,11 +320,10 @@
 
                 <!-- 模式B：無限廠商詢比價動態提報 -->
                 <div id="modal-mode-quotes" class="hidden-view">
-                    <!-- 待修復 -->
                     <p
                         class="text-xs text-amber-600 mb-4 bg-amber-50 p-2.5 rounded border border-amber-100 flex items-start gap-1.5">
                         <i data-lucide="alert-triangle" class="w-4.5 h-4.5 flex-shrink-0 mt-0.5"></i>
-                        請在此填寫處置方案與<b>上傳相關資訊(報價單or詢假紀錄)</b>。最高金額突破一萬將自動簽核至秘書長。</p>
+                        請在此填寫處置方案與<b>上傳相關資訊(報價單or詢價紀錄)</b>。最高金額突破一萬將自動簽核至秘書長。</p>
 
                     <!-- 方案動態容器 -->
                     <div id="quotes-list-container" class="space-y-4 mb-4">
@@ -331,9 +335,9 @@
                             data-lucide="plus-circle" class="w-4 h-4"></i> 新增處置方案/廠商報價</button>
 
                     <div class="flex justify-end gap-3">
-                        <button onclick="closeModal()"
+                        <button type="button" onclick="closeModal()"
                             class="px-5 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
-                        <button onclick="submitQuotes()" id="modal-quotes-btn"
+                        <button type="button" onclick="submitQuotes()" id="modal-quotes-btn"
                             class="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition flex items-center gap-2"><i
                                 data-lucide="send" class="w-4 h-4"></i> 送出主管簽核</button>
                     </div>
@@ -342,20 +346,20 @@
         </div>
     </div>
 
-    <!-- 長官審核簽公文 Modal -->
+    <!-- 長官審核簽公文 Modal (已修正滾動、最大高度、避免背景滑動穿透) -->
     <div id="approve-modal"
-        class="hidden-view fixed inset-0 bg-slate-900 bg-opacity-60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div class="bg-purple-50 border-b border-purple-100 px-6 py-4 flex justify-between items-center">
+        class="hidden-view fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm overscroll-contain">
+        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-purple-50 border-b border-purple-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
                 <h3 class="font-bold text-lg text-purple-900 flex items-center gap-2"><i data-lucide="stamp"
-                        class="w-5 h-5"></i> 待簽核案件清單</h3>
+                        class="w-5 h-5"></i> 待簽核案件審視</h3>
                 <button onclick="closeApproveModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x"
                         class="w-5 h-5"></i></button>
             </div>
 
-            <div class="p-6">
+            <div class="p-6 overflow-y-auto no-scrollbar flex-grow">
                 <input type="hidden" id="approve-caseid">
-                <p class="text-xs text-slate-500 mb-4">請審閱總務提報之處置方案（可點選檢視報價單等相關資訊），選取最終選定的「方案」：</p>
+                <p class="text-xs text-slate-500 mb-4">請審閱總務提報之處置方案（可點選檢視報價單等相關資訊），選取最終選定的「方案」或進行退回：</p>
 
                 <!-- 長官動態方案單選按鈕容器 -->
                 <div id="approve-options-container" class="space-y-3 mb-6">
@@ -366,12 +370,12 @@
                         class="text-red-500">*</span></label>
                 <textarea id="approve-comment" rows="3" required
                     class="w-full p-2.5 border border-slate-300 rounded-lg mb-6 outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="請填寫對此案件的處理說明..."></textarea>
+                    placeholder="請填寫對此案件的處理說明或退回指示..."></textarea>
 
                 <div class="flex justify-end gap-3">
-                    <button onclick="closeApproveModal()"
+                    <button type="button" onclick="closeApproveModal()"
                         class="px-4 py-2.5 text-slate-600 font-medium bg-slate-100 hover:bg-slate-200 rounded-lg transition">取消</button>
-                    <button onclick="submitApprove()" id="approve-submit-btn"
+                    <button type="button" onclick="submitApprove()" id="approve-submit-btn"
                         class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition flex items-center gap-2"><i
                             data-lucide="check" class="w-4 h-4"></i> 簽核結果送出</button>
                 </div>
@@ -593,7 +597,7 @@
                 const textOnly = log.replace(/\[.*?\]/, '').trim();
 
                 let icon = 'circle'; let iconColor = 'text-slate-400 bg-slate-100';
-                if (textOnly.includes('建立') || textOnly.includes('提報') || textOnly.includes('提交')) { icon = 'wrench'; iconColor = 'text-blue-600 bg-blue-100'; }
+                if (textOnly.includes('建立') || textOnly.includes('提報') || textOnly.includes('提交') || textOnly.includes('撤回')) { icon = 'wrench'; iconColor = 'text-blue-600 bg-blue-100'; }
                 else if (textOnly.includes('核准') || textOnly.includes('核定') || textOnly.includes('通過')) { icon = 'check-circle-2'; iconColor = 'text-green-600 bg-green-100'; }
                 else if (textOnly.includes('退回') || textOnly.includes('駁回')) { icon = 'x-circle'; iconColor = 'text-red-600 bg-red-100'; }
 
@@ -610,10 +614,8 @@
             return html;
         }
 
-        // 📍 【優化亮點二】：處置歷史回覆區塊，解析後「最新內容放最上面 (倒序)」呈現！
         function renderPastReplies(replyStr, showFiles = false) {
             if (!replyStr) return '';
-            // 點擊 split 分割後直接 reverse() 使最新資料回到最前
             const logs = replyStr.split('\n').filter(line => line.trim() !== '').reverse();
             let html = `
             <div class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
@@ -721,7 +723,13 @@
             btn.disabled = true; btn.innerHTML = `<div class="loader" style="width:18px;height:18px;border-width:2px;border-top-color:#fff;"></div> 資料處理中...`; btn.classList.add('opacity-75', 'cursor-not-allowed');
 
             try {
-                const payload = { action: 'create', equipment: document.getElementById('equipment').value, category: document.getElementById('category').value, description: document.getElementById('description').value };
+                const payload = { 
+                    action: 'create', 
+                    equipment: document.getElementById('equipment').value, 
+                    area: document.getElementById('area').value, // 設備所在區域資訊
+                    category: document.getElementById('category').value, 
+                    description: document.getElementById('description').value 
+                };
                 if (rawSelectedImages.length > 0) {
                     payload.images = [];
                     for (let file of rawSelectedImages) { payload.images.push(await compressImage(file)); }
@@ -818,7 +826,7 @@
             } catch (e) { return ''; }
         }
 
-        // 📍 【修復優化一】：同仁端（我的紀錄）徹底移除「處置與歷史回覆歷程看板」，極簡大氣、拒絕重複
+        // 同仁端（我的紀錄）已加入區域呈現、移除冗餘看板
         function renderHistory(records) {
             const container = document.getElementById('history-container'); container.innerHTML = '';
             if (!records || records.length === 0) { container.innerHTML = `<div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center"><i data-lucide="inbox" class="w-16 h-16 text-slate-200 mx-auto mb-4"></i><p class="text-slate-500 font-medium">您目前沒有任何報修紀錄！</p></div>`; lucide.createIcons(); return; }
@@ -840,7 +848,7 @@
                         <h4 class="font-bold text-lg text-slate-800 leading-tight">${record.equipment}</h4>
                         <span class="text-xs px-2.5 py-1 rounded-full font-bold border ${statusColor}">${record.status}</span>
                     </div>
-                    <p class="text-xs text-slate-400 mb-3"><i data-lucide="tag" class="inline w-3 h-3"></i> ${record.category} | 案號: ${record.caseId}</p>
+                    <p class="text-xs text-slate-400 mb-3"><i data-lucide="map-pin" class="inline w-3 h-3 text-primary"></i> 區域: ${record.area || '未設定'} | <i data-lucide="tag" class="inline w-3 h-3"></i> ${record.category} | 案號: ${record.caseId}</p>
                     <div class="text-slate-700 text-sm mb-3 bg-slate-50 p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">${record.description}</div>
                     ${imgsHTML}
                     ${atts.video ? `<a href="${atts.video}" target="_blank" class="inline-flex items-center gap-1 mt-3 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-100"><i data-lucide="play-circle" class="w-4 h-4"></i> 觀看影片附件</a>` : ''}
@@ -880,6 +888,7 @@
             } catch (e) { container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4">網路錯誤。</div>`; }
         }
 
+        // 總務端撤回修改功能核心與「設備所在區域」顯示
         function renderAdminData() {
             const container = document.getElementById('admin-container'); const filter = document.getElementById('admin-filter').value;
             container.innerHTML = '';
@@ -900,15 +909,21 @@
                 }
 
                 const quoteSumHTML = renderQuotesTable(record.quotesJson, record.finalDecision, true);
-
-                // 📍 後台依然保留此處置對話看板（此時內部已自動逆序，最新一筆位於最頂）
                 const pastRepliesHTML = renderPastReplies(record.reply, true);
 
-                // 公文唯讀鎖定控制
-                const canEdit = record.status === '待處理' || record.status === '處理中' || record.status === '待主管簽核';
-                const actionBtnHtml = canEdit
-                    ? `<button onclick="openModal('${btnData}')" class="bg-blue-50 border border-blue-200 p-2 rounded-lg text-primary hover:bg-blue-100 flex-shrink-0 transition" title="處置/提報方案"><i data-lucide="edit" class="w-4 h-4"></i></button>`
-                    : `<span class="text-xs text-slate-400 bg-slate-50 border border-slate-200 p-2 py-1.5 rounded-lg flex items-center gap-1 font-bold"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 公文鎖定</span>`;
+                // 總務操作控制邏輯（已送出審核可以「撤回」修改）
+                const isPendingApproval = record.status === '待主管簽核' || record.status === '待秘書長簽核';
+                const canEdit = record.status === '待處理' || record.status === '處理中' || record.status === '待總務重新評估';
+                
+                let actionBtnHtml = '';
+                if (canEdit) {
+                    actionBtnHtml = `<button onclick="openModal('${btnData}')" class="bg-blue-50 border border-blue-200 p-2 rounded-lg text-primary hover:bg-blue-100 flex-shrink-0 transition" title="處置/提報方案"><i data-lucide="edit" class="w-4 h-4"></i></button>`;
+                } else if (isPendingApproval) {
+                    // 撤回修改按鈕
+                    actionBtnHtml = `<button onclick="withdrawCase('${record.caseId}')" class="bg-orange-50 border border-orange-200 p-2 py-1 px-2.5 rounded-lg text-orange-600 hover:bg-orange-100 flex items-center gap-1 flex-shrink-0 transition font-bold text-xs" title="撤回提案以便修改內容"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 撤回修改</button>`;
+                } else {
+                    actionBtnHtml = `<span class="text-xs text-slate-400 bg-slate-50 border border-slate-200 p-2 py-1.5 rounded-lg flex items-center gap-1 font-bold"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 公文鎖定</span>`;
+                }
 
                 container.innerHTML += `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-blue-300 transition flex flex-col h-full">
@@ -919,7 +934,12 @@
                         </div>
                         ${actionBtnHtml}
                     </div>
-                    <div class="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2 space-y-1"><div>案號: <span class="font-mono text-slate-400">${record.caseId}</span></div><div class="truncate">提報人: ${record.reporter}</div><div>時間: ${record.createdAt}</div></div>
+                    <div class="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2 space-y-1">
+                        <div>區域: <span class="font-bold text-slate-700">${record.area || '未設定'}</span></div>
+                        <div>案號: <span class="font-mono text-slate-400">${record.caseId}</span></div>
+                        <div class="truncate">提報人: ${record.reporter}</div>
+                        <div>時間: ${record.createdAt}</div>
+                    </div>
                     <div class="text-sm text-slate-700 mb-2 bg-slate-50 p-2 rounded flex-grow whitespace-pre-wrap">${record.description}</div>
                     ${imgsHTML}
                     
@@ -933,6 +953,24 @@
                 </div>`;
             });
             lucide.createIcons();
+        }
+
+        // 總務撤回修改前端 API 接孔
+        async function withdrawCase(caseId) {
+            if (!confirm('確認要撤回此報修案件的處置方案嗎？撤回後主管端將暫時無法簽核。')) return;
+            showToast("正在撤回公文中...");
+            try {
+                const res = await callGAS({ action: 'withdraw_case', caseId: caseId });
+                if (res.status === 'success') {
+                    showToast('案件已撤回修改，狀態回復為處理中！');
+                    cacheData.admin = null;
+                    loadAdminData(true);
+                } else {
+                    showCustomAlert('撤回失敗：' + res.message);
+                }
+            } catch (e) {
+                showCustomAlert('撤回公文連線發生異常。');
+            }
         }
 
         async function loadApproveData(forceRefresh = false) {
@@ -971,6 +1009,7 @@
             } catch (e) { container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4">待簽核資料發生錯誤。</div>`; }
         }
 
+        // 案件簽核卡片加入區域、重整排版
         function renderApproveData(records) {
             const container = document.getElementById('approve-container');
             container.innerHTML = '';
@@ -1015,6 +1054,7 @@
                     </div>
                     <h4 class="font-bold text-slate-800 text-base leading-tight mb-2">${record.equipment}</h4>
                     <div class="text-xs text-slate-500 mb-3 space-y-1">
+                        <div>區域: <span class="font-bold text-slate-700">${record.area || '未設定'}</span></div>
                         <div>案號: <span class="font-mono">${record.caseId}</span></div>
                         <div>立案同仁: ${record.reporter}</div>
                     </div>
@@ -1056,7 +1096,7 @@
                             <button type="button" onclick="clearQuoteFile('${rowId}')" class="text-red-500 hover:text-red-700 hidden-view flex items-center" id="clear-file-btn-${rowId}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                         </div>
                     </div>
-                    <div id="file-status-${rowId}" class="text-[10px] text-slate-400 mt-1 truncate">未選擇 any 單據檔案 (限 10MB 內)</div>
+                    <div id="file-status-${rowId}" class="text-[10px] text-slate-400 mt-1 truncate">未選擇單據檔案 (限 10MB 內)</div>
                 </div>
             </div>`;
             container.insertAdjacentHTML('beforeend', html);
@@ -1125,7 +1165,7 @@
 
         function clearQuoteFile(rowId) {
             delete quoteFilesMap[rowId];
-            document.getElementById(`file-status-${rowId}`).innerHTML = "未選擇 any 單據檔案 (限 10MB 內)";
+            document.getElementById(`file-status-${rowId}`).innerHTML = "未選擇單據檔案 (限 10MB 內)";
             document.getElementById(`clear-file-btn-${rowId}`).classList.add('hidden-view');
             const row = document.getElementById(rowId);
             const input = row.querySelector('.quote-file-input');
@@ -1151,19 +1191,16 @@
             }
         }
 
-        // 開啟更新 Modal：隔離歷史紀錄與新輸入框
+        // 開啟 Modal：加上 body overflow-hidden 解決手機滑動穿透
         function openModal(dataStr) {
             const data = JSON.parse(decodeURIComponent(dataStr));
             document.getElementById('modal-caseid').value = data.caseId;
             document.getElementById('modal-status').value = data.status;
 
-            // 1. 新增輸入框回歸純淨空白
             document.getElementById('modal-reply').value = '';
 
-            // 2. 歷史處理紀錄以高質感唯讀看板渲染
             const pastRepliesContainer = document.getElementById('modal-past-replies');
             if (data.reply) {
-                // 隔離唯讀盒子亦同步採用最新的倒序看板，體驗高度一致
                 pastRepliesContainer.innerHTML = renderPastReplies(data.reply, true);
                 pastRepliesContainer.classList.remove('hidden-view');
             } else {
@@ -1171,7 +1208,6 @@
                 pastRepliesContainer.classList.add('hidden-view');
             }
 
-            // 清空詢比價暫存
             quoteFilesMap = {};
             const container = document.getElementById('quotes-list-container');
             container.innerHTML = '';
@@ -1179,10 +1215,14 @@
 
             switchModalMode('direct');
             document.getElementById('reply-modal').classList.remove('hidden-view');
+            document.body.classList.add('overflow-hidden'); // ⚠️ 防止手機滑動穿透
             lucide.createIcons();
         }
 
-        function closeModal() { document.getElementById('reply-modal').classList.add('hidden-view'); }
+        function closeModal() { 
+            document.getElementById('reply-modal').classList.add('hidden-view'); 
+            document.body.classList.remove('overflow-hidden'); // ⚠️ 恢復滾動
+        }
 
         async function submitQuotes() {
             const btn = document.getElementById('modal-quotes-btn');
@@ -1231,7 +1271,7 @@
                     closeModal(); loadAdminData(true);
                 } else { showCustomAlert('處置方案簽核提報失敗：' + res.message); }
             } catch (e) { showCustomAlert('連線異常，處置方案簽核提報失敗。'); }
-            finally { btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> 呈報上層主管簽核'; lucide.createIcons(); btn.disabled = false; }
+            finally { btn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> 送出主管簽核'; lucide.createIcons(); btn.disabled = false; }
         }
 
         function openApproveModal(dataStr) {
@@ -1243,6 +1283,7 @@
             const container = document.getElementById('approve-options-container');
             container.innerHTML = '';
 
+            // 1. 各項方案
             quotes.forEach((q, idx) => {
                 const fileLinkHtml = q.fileUrl
                     ? `<a href="${q.fileUrl}" target="_blank" onclick="event.stopPropagation()" class="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline font-bold mt-1 pl-6"><i data-lucide="external-link" class="w-3 h-3"></i> 點此檢視報價單檔案/PDF</a>`
@@ -1261,21 +1302,37 @@
                 `;
             });
 
+            // 2. 退回總務重新估價方案（新增實務功能需求 2）
+            container.innerHTML += `
+            <label class="block p-3 border border-orange-200 rounded-xl hover:border-orange-300 transition cursor-pointer bg-orange-50/50 flex items-start gap-2">
+                <input type="radio" name="approve-decision" value="ReturnToEngineer" class="mt-1">
+                <div>
+                    <span class="font-bold text-sm text-orange-800">退回總務重估 (請工程師重擬方案)</span>
+                    <div class="text-xs text-orange-600 mt-1 pl-6">不結案。退回給案件提報總務，請其重新尋標、比價或提供其他可行處置方案。</div>
+                </div>
+            </label>
+            `;
+
+            // 3. 退回公文（直接駁回/報廢不修）
             container.innerHTML += `
             <label class="block p-3 border border-red-200 rounded-xl hover:border-red-300 transition cursor-pointer bg-red-50 flex items-start gap-2">
                 <input type="radio" name="approve-decision" value="Reject" class="mt-1">
                 <div>
-                    <span class="font-bold text-sm text-red-800">退回公文 (駁回不修 / 報廢)</span>
-                    <div class="text-xs text-red-600 mt-1 pl-6">本案件將直接退回並結案。</div>
+                    <span class="font-bold text-sm text-red-800">駁回本案不維修 (退回不修直接結案)</span>
+                    <div class="text-xs text-red-600 mt-1 pl-6">本案件將直接退回結案。</div>
                 </div>
             </label>
             `;
 
             document.getElementById('approve-modal').classList.remove('hidden-view');
+            document.body.classList.add('overflow-hidden'); // ⚠️ 鎖定手機背景防止穿透滑動
             lucide.createIcons();
         }
 
-        function closeApproveModal() { document.getElementById('approve-modal').classList.add('hidden-view'); }
+        function closeApproveModal() { 
+            document.getElementById('approve-modal').classList.add('hidden-view'); 
+            document.body.classList.remove('overflow-hidden'); // ⚠️ 恢復滾動
+        }
 
         async function submitApprove() {
             const btn = document.getElementById('approve-submit-btn');

@@ -30,7 +30,7 @@
         }
 
         @keyframes spin {
-            0 {
+            0% {
                 transform: rotate(0deg);
             }
 
@@ -255,7 +255,7 @@
 
     <!-- 客製化高質感對話框 -->
     <div id="alert-modal"
-        class="hidden-view fixed inset-0 bg-slate-900 /60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        class="hidden-view fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center">
             <div
                 class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -387,7 +387,7 @@
     <script>
         lucide.createIcons();
         // ⚠️ 請填入您的最新 GAS Web App URL
-        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSwHkciVjrPUgaRPiDAp6RoG5QmC2GNzaCYaEpjCINwwY0o51HabvKz7SH09Pc8oUWDA/exec';
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwQgk42U6QC433XEC26tF7yU-PSMB-8btQETIvLxPwDQuCzbhQJKR-YJspbaRe9EAJCDA/exec';
 
         let currentUser = null; let isAdminUser = false; let allAdminRepairs = []; let userRole = '';
         let rawSelectedImages = []; let rawSelectedVideo = null;
@@ -586,28 +586,55 @@
             }
         }
 
-        // 垂直時間軸渲染 (Timeline)
+        // 垂直時間軸渲染 (Timeline) - 修復結尾多餘引線與完結節點圖標特化
         function renderTimeline(timelineStr) {
             if (!timelineStr) return '';
             const logs = timelineStr.split('\n');
-            let html = `<div class="mt-4 border-l-2 border-slate-200 pl-4 space-y-4 ml-2">`;
+            let html = `<div class="mt-4 space-y-4">`;
+            
             logs.forEach((log, index) => {
                 const datePart = log.match(/\[(.*?)\]/);
                 const actualDate = datePart ? datePart[1] : '';
                 const textOnly = log.replace(/\[.*?\]/, '').trim();
 
-                let icon = 'circle'; let iconColor = 'text-slate-400 bg-slate-100';
-                if (textOnly.includes('建立') || textOnly.includes('提報') || textOnly.includes('提交') || textOnly.includes('撤回')) { icon = 'wrench'; iconColor = 'text-blue-600 bg-blue-100'; }
-                else if (textOnly.includes('核准') || textOnly.includes('核定') || textOnly.includes('通過')) { icon = 'check-circle-2'; iconColor = 'text-green-600 bg-green-100'; }
-                else if (textOnly.includes('退回') || textOnly.includes('駁回')) { icon = 'x-circle'; iconColor = 'text-red-600 bg-red-100'; }
+                let icon = 'circle'; 
+                let iconColor = 'text-slate-400 bg-slate-100 ring-slate-100';
+                
+                // 1. 偵測是否為最終完結狀態
+                const isCompleted = textOnly.includes('已完成') || textOnly.includes('處理完成') || textOnly.includes('核決已完成');
+                const isRejected = textOnly.includes('退回不修') || textOnly.includes('駁回') || textOnly.includes('已退回') || textOnly.includes('退回') && (textOnly.includes('不予維修') || textOnly.includes('結案'));
+                const isWithdrawn = textOnly.includes('撤回');
+
+                // 2. 根據不同狀態指派高質感圖標與外環
+                if (isCompleted) {
+                    icon = 'check-circle-2'; 
+                    iconColor = 'text-green-600 bg-green-50 ring-4 ring-green-100'; 
+                } else if (isRejected) {
+                    icon = 'ban'; 
+                    iconColor = 'text-red-600 bg-red-50 ring-4 ring-red-100'; 
+                } else if (isWithdrawn) {
+                    icon = 'rotate-ccw'; 
+                    iconColor = 'text-orange-600 bg-orange-50 ring-orange-100'; 
+                } else if (textOnly.includes('建立') || textOnly.includes('提報') || textOnly.includes('提交')) { 
+                    icon = 'wrench'; 
+                    iconColor = 'text-blue-600 bg-blue-100'; 
+                } else {
+                    icon = 'clock';
+                    iconColor = 'text-slate-500 bg-slate-100';
+                }
+
+                const isLast = index === logs.length - 1;
+                // 3. 核心修復：只有在不是「最後一個節點」時，才繪製向下延伸到下個節點的引線
+                const connectorLine = isLast ? '' : `<span class="absolute left-[10px] top-6 bottom-0 w-0.5 bg-slate-200 -z-10"></span>`;
 
                 html += `
-                <div class="relative pl-6">
-                    <span class="absolute -left-[27px] top-0.5 flex items-center justify-center w-5 h-5 rounded-full ring-4 ring-white ${iconColor}">
+                <div class="relative pl-8 pb-1">
+                    ${connectorLine}
+                    <span class="absolute left-0 top-0.5 flex items-center justify-center w-5 h-5 rounded-full ring-4 ring-white z-10 ${iconColor}">
                         <i data-lucide="${icon}" class="w-3 h-3"></i>
                     </span>
                     <div class="text-[10px] font-semibold text-slate-400 font-mono">${actualDate}</div>
-                    <div class="text-xs text-slate-700 whitespace-pre-wrap">${textOnly}</div>
+                    <div class="text-xs text-slate-700 whitespace-pre-wrap ${isLast ? 'font-bold text-slate-900' : ''}">${textOnly}</div>
                 </div>`;
             });
             html += `</div>`;
@@ -761,6 +788,7 @@
             return { images, video };
         }
 
+        // 縮圖輔助函數
         function getThumbnailUrl(url) {
             const match1 = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
             const match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
@@ -826,7 +854,6 @@
             } catch (e) { return ''; }
         }
 
-        // 同仁端（我的紀錄）已加入區域呈現、移除冗餘看板
         function renderHistory(records) {
             const container = document.getElementById('history-container'); container.innerHTML = '';
             if (!records || records.length === 0) { container.innerHTML = `<div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 text-center"><i data-lucide="inbox" class="w-16 h-16 text-slate-200 mx-auto mb-4"></i><p class="text-slate-500 font-medium">您目前沒有任何報修紀錄！</p></div>`; lucide.createIcons(); return; }
@@ -888,7 +915,7 @@
             } catch (e) { container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4">網路錯誤。</div>`; }
         }
 
-        // 總務端撤回修改功能核心與「設備所在區域」顯示
+        // 總務管理後台 - 撤回狀態支援與重新編輯
         function renderAdminData() {
             const container = document.getElementById('admin-container'); const filter = document.getElementById('admin-filter').value;
             container.innerHTML = '';
@@ -911,16 +938,15 @@
                 const quoteSumHTML = renderQuotesTable(record.quotesJson, record.finalDecision, true);
                 const pastRepliesHTML = renderPastReplies(record.reply, true);
 
-                // 總務操作控制邏輯（已送出審核可以「撤回」修改）
+                // 總務端的操作權限邏輯 (撤回修改中、處理中、重新評估皆可以重新編輯編輯方案)
                 const isPendingApproval = record.status === '待主管簽核' || record.status === '待秘書長簽核';
-                const canEdit = record.status === '待處理' || record.status === '處理中' || record.status === '待總務重新評估';
+                const canEdit = record.status === '待處理' || record.status === '處理中' || record.status === '待總務重新評估' || record.status === '總務撤回修改中';
                 
                 let actionBtnHtml = '';
                 if (canEdit) {
                     actionBtnHtml = `<button onclick="openModal('${btnData}')" class="bg-blue-50 border border-blue-200 p-2 rounded-lg text-primary hover:bg-blue-100 flex-shrink-0 transition" title="處置/提報方案"><i data-lucide="edit" class="w-4 h-4"></i></button>`;
                 } else if (isPendingApproval) {
-                    // 撤回修改按鈕
-                    actionBtnHtml = `<button onclick="withdrawCase('${record.caseId}')" class="bg-orange-50 border border-orange-200 p-2 py-1 px-2.5 rounded-lg text-orange-600 hover:bg-orange-100 flex items-center gap-1 flex-shrink-0 transition font-bold text-xs" title="撤回提案以便修改內容"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 撤回修改</button>`;
+                    actionBtnHtml = `<button onclick="withdrawCase('${record.caseId}')" class="bg-orange-50 border border-orange-200 p-2 py-1 px-2.5 rounded-lg text-orange-600 hover:bg-orange-100 flex items-center gap-1 flex-shrink-0 transition font-bold text-xs shadow-xs" title="撤回提案以便修改方案"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 撤回修改</button>`;
                 } else {
                     actionBtnHtml = `<span class="text-xs text-slate-400 bg-slate-50 border border-slate-200 p-2 py-1.5 rounded-lg flex items-center gap-1 font-bold"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 公文鎖定</span>`;
                 }
@@ -955,15 +981,16 @@
             lucide.createIcons();
         }
 
-        // 總務撤回修改前端 API 接孔
+        // 總務撤回修改前端 API
         async function withdrawCase(caseId) {
-            if (!confirm('確認要撤回此報修案件的處置方案嗎？撤回後主管端將暫時無法簽核。')) return;
+            if (!confirm('確認要撤回此報修案件的處置方案嗎？撤回後案件將保留在主管端看板，但主管會暫時鎖定無法核決，直到您再次送出。')) return;
             showToast("正在撤回公文中...");
             try {
                 const res = await callGAS({ action: 'withdraw_case', caseId: caseId });
                 if (res.status === 'success') {
-                    showToast('案件已撤回修改，狀態回復為處理中！');
+                    showToast('案件已撤回修改，主管端已同步鎖定狀態！');
                     cacheData.admin = null;
+                    cacheData.approve = null; // 強制重刷主管與管理頁快取
                     loadAdminData(true);
                 } else {
                     showCustomAlert('撤回失敗：' + res.message);
@@ -988,6 +1015,7 @@
                     const list = res.data.reverse();
                     let pendingList = [];
 
+                    // 同步過濾出處於 "待主管/秘書長簽核" 或 "總務撤回修改中" 的主管對應案件
                     if (hasRole('admin')) {
                         pendingList = list.filter(r => (r.supervisorStatus === '待審核') || (r.secretaryStatus === '待審核'));
                     } else {
@@ -1009,12 +1037,19 @@
             } catch (e) { container.innerHTML = `<div class="col-span-full text-center text-red-500 bg-red-50 p-4">待簽核資料發生錯誤。</div>`; }
         }
 
-        // 案件簽核卡片加入區域、重整排版
+        // 📍 主管審核卡片 - 支援總務撤回修改狀態的半透明（50%透明）與不可操作機制
         function renderApproveData(records) {
             const container = document.getElementById('approve-container');
             container.innerHTML = '';
             if (records.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-400 bg-white rounded-2xl border border-dashed p-6"><i data-lucide="folder-check" class="w-16 h-16 text-slate-200 mx-auto mb-3"></i>無待簽核資料</div>`;
+                container.innerHTML = `
+                <div class="col-span-full text-center py-16 text-slate-400 bg-white rounded-2xl border border-dashed p-6 shadow-sm">
+                    <i data-lucide="folder-check" class="w-16 h-16 text-slate-200 mx-auto mb-3"></i>
+                    <p class="font-bold text-slate-600">目前沒有待處理的簽核公文</p>
+                    <p class="text-xs text-slate-400 mt-2 font-medium max-w-md mx-auto leading-relaxed">
+                        您已完成所有案件的核定。若有新提報的詢比價方案，系統將隨時同步更新於此。
+                    </p>
+                </div>`;
                 lucide.createIcons(); return;
             }
 
@@ -1022,10 +1057,13 @@
                 const btnData = encodeURIComponent(JSON.stringify(record));
                 const quotes = JSON.parse(record.quotesJson || '[]');
 
+                // 核心邏輯：判斷總務是否目前把案件撤回去了
+                const isWithdrawnByEngineer = record.status === '總務撤回修改中';
+
                 let quotesRowsHtml = '';
                 quotes.forEach((q, idx) => {
                     const fileLinkHtml = q.fileUrl
-                        ? `<a href="${q.fileUrl}" target="_blank" class="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline font-bold mt-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> 點此核對廠商原始報價單/合約</a>`
+                        ? `<a href="${q.fileUrl}" target="_blank" class="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline font-bold mt-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> 點此核對廠商原始報價單</a>`
                         : `<span class="text-xs text-slate-400 mt-1">(無報價單附件)</span>`;
 
                     quotesRowsHtml += `
@@ -1040,29 +1078,53 @@
                 });
 
                 let badgeText = "待核決";
-                if (hasRole('admin')) {
-                    badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您扮演秘書長)" : "待主管簽核 (您扮演直屬主管)";
-                } else if (hasRole('manager') && hasRole('secretary_general')) {
-                    badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您為秘書長關卡)" : "待主管簽核 (您為一階主管關卡)";
+                let badgeClass = "bg-purple-100 text-purple-700";
+                
+                if (isWithdrawnByEngineer) {
+                    badgeText = "總務撤回修改中";
+                    badgeClass = "bg-orange-100 text-orange-700 border border-orange-200";
+                } else {
+                    if (hasRole('admin')) {
+                        badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您扮演秘書長)" : "待主管簽核 (您扮演直屬主管)";
+                    } else if (hasRole('manager') && hasRole('secretary_general')) {
+                        badgeText = record.status === '待秘書長簽核' ? "待秘書長簽核 (您為秘書長關卡)" : "待主管簽核 (您為一階主管關卡)";
+                    }
                 }
 
+                // 根據撤回狀態，動態生成長官的操作按鈕
+                const actionBtnHtml = isWithdrawnByEngineer
+                    ? `<button disabled class="bg-slate-100 border border-slate-200 p-2 py-1.5 px-3 rounded-lg text-slate-400 flex items-center gap-1.5 font-bold text-xs cursor-not-allowed select-none" title="總務人員目前已撤回本案，正在修改內容，請稍後。"><i data-lucide="lock" class="w-3.5 h-3.5"></i> 總務修改中...</button>`
+                    : `<button onclick="openApproveModal('${btnData}')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 transition shadow-sm"><i data-lucide="stamp" class="w-4 h-4"></i> 進行線上核決</button>`;
+
+                // 撤回時亮起的頂部溫馨提示條
+                const withdrawnAlertHeader = isWithdrawnByEngineer
+                    ? `
+                    <div class="bg-amber-50 border-b border-amber-100 text-amber-800 text-[11px] px-4 py-2.5 flex items-center gap-1.5 font-bold flex-shrink-0">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 animate-pulse flex-shrink-0"></i>
+                        <span>提示：總務正在對此案件進行處置/報價方案修改，當前已被鎖定，無法核定簽署。</span>
+                    </div>`
+                    : '';
+
                 container.innerHTML += `
-                <div class="bg-white p-5 rounded-2xl border border-purple-200 shadow-sm hover:shadow-md transition">
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="text-xs bg-purple-100 text-purple-700 font-bold px-2.5 py-1 rounded">${badgeText}</span>
-                        <button onclick="openApproveModal('${btnData}')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 transition"><i data-lucide="stamp" class="w-4 h-4"></i> 進行線上核決</button>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-base leading-tight mb-2">${record.equipment}</h4>
-                    <div class="text-xs text-slate-500 mb-3 space-y-1">
-                        <div>區域: <span class="font-bold text-slate-700">${record.area || '未設定'}</span></div>
-                        <div>案號: <span class="font-mono">${record.caseId}</span></div>
-                        <div>立案同仁: ${record.reporter}</div>
-                    </div>
-                    <div class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4 whitespace-pre-wrap">${record.description}</div>
-                    
-                    <div class="border-t border-purple-100 pt-3 space-y-2">
-                        <div class="text-xs font-bold text-slate-500 mb-1">提報比價方案明細 (${quotes.length} 家)：</div>
-                        ${quotesRowsHtml}
+                <div class="bg-white rounded-2xl border ${isWithdrawnByEngineer ? 'border-orange-200 shadow-xs opacity-50 select-none' : 'border-purple-200 shadow-sm hover:shadow-md'} overflow-hidden transition flex flex-col">
+                    ${withdrawnAlertHeader}
+                    <div class="p-5 flex-grow">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-bold px-2.5 py-1 rounded ${badgeClass}">${badgeText}</span>
+                            ${actionBtnHtml}
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-base leading-tight mb-2">${record.equipment}</h4>
+                        <div class="text-xs text-slate-500 mb-3 space-y-1">
+                            <div>區域: <span class="font-bold text-slate-700">${record.area || '未設定'}</span></div>
+                            <div>案號: <span class="font-mono">${record.caseId}</span></div>
+                            <div>立案同仁: ${record.reporter}</div>
+                        </div>
+                        <div class="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4 whitespace-pre-wrap">${record.description}</div>
+                        
+                        <div class="border-t border-purple-100 pt-3 space-y-2">
+                            <div class="text-xs font-bold text-slate-500 mb-1">提報比價方案明細 (${quotes.length} 家)：</div>
+                            ${quotesRowsHtml}
+                        </div>
                     </div>
                 </div>`;
             });
@@ -1268,6 +1330,7 @@
                 if (res.status === 'success') {
                     showToast('處置方案簽核提報成功！');
                     cacheData.admin = null;
+                    cacheData.approve = null; // 清除快取強制主管重整
                     closeModal(); loadAdminData(true);
                 } else { showCustomAlert('處置方案簽核提報失敗：' + res.message); }
             } catch (e) { showCustomAlert('連線異常，處置方案簽核提報失敗。'); }
@@ -1302,7 +1365,7 @@
                 `;
             });
 
-            // 2. 退回總務重新估價方案（新增實務功能需求 2）
+            // 2. 退回總務重新估價方案
             container.innerHTML += `
             <label class="block p-3 border border-orange-200 rounded-xl hover:border-orange-300 transition cursor-pointer bg-orange-50/50 flex items-start gap-2">
                 <input type="radio" name="approve-decision" value="ReturnToEngineer" class="mt-1">
@@ -1358,6 +1421,7 @@
                 if (res.status === 'success') {
                     showToast('簽核結果送出成功！');
                     cacheData.approve = null;
+                    cacheData.admin = null; // 刷新資料狀態
                     closeApproveModal(); loadApproveData(true);
                 } else { showCustomAlert('簽核結果送出失敗：' + res.message); }
             } catch (e) { showCustomAlert('簽核結果送出失敗，請重試。'); }
